@@ -1,0 +1,21 @@
+modLoader = "javafml"
+loaderVersion = "[32,)"
+issueTrackerURL = ""
+license = "GNU LGPLv3"
+
+[[mods]]
+modId = "probejs"
+version = "${version}"
+displayName = "ProbeJS"
+authors = "Prunoideae"
+description = '''
+KubeJS data dumper
+'''
+license = "GNU LGPLv3"
+
+[[dependencies.probejs]]
+modId = "kubejs"
+mandatory = true
+versionRange = "[1605.3.13-build.49,)"
+ordering = "AFTER"
+side = "BOTH"

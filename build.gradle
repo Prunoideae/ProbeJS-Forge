@@ -1,0 +1,110 @@
+plugins {
+    id "dev.architectury.loom" version "0.10.0-SNAPSHOT"
+    id "com.matthewprenger.cursegradle" version "1.4.0"
+    id 'maven-publish'
+}
+
+apply from: 'https://files.latmod.com/public/markdown-git-changelog.gradle'
+
+sourceCompatibility = targetCompatibility = JavaVersion.VERSION_17
+
+def ENV = System.getenv()
+version = "${mod_version}-build.1"
+archivesBaseName = project.archives_base_name
+group = project.maven_group
+
+loom {
+    silentMojangMappingsLicense()
+
+    forge {
+        mixinConfigs = [
+        ]
+
+        dataGen {
+            mod project.mod_id
+        }
+
+        launches {
+            data {
+                arg "--existing", file("src/main/resources").absolutePath
+            }
+        }
+    }
+}
+
+repositories {
+    maven {
+        url "https://maven.architectury.dev/"
+        content {
+            includeGroup "dev.architectury"
+        }
+    }
+
+    maven {
+        url "https://maven.saps.dev/minecraft"
+        content {
+            includeGroup "dev.latvian.mods"
+            includeGroup "dev.ftb.mods"
+        }
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings minecraft.officialMojangMappings()
+    forge "net.minecraftforge:forge:${project.minecraft_version}-${project.forge_version}"
+
+    modApi "dev.latvian.mods:kubejs-forge:${rootProject.kubejs_version}"
+}
+
+processResources {
+    inputs.property "version", project.version
+
+    filesMatching("META-INF/mods.toml") {
+        expand "version": project.version
+    }
+}
+
+compileJava {
+    options.encoding = "UTF-8"
+}
+
+java {
+    withSourcesJar()
+}
+
+jar {
+    from("LICENSE") {
+        rename { "${it}_${project.archivesBaseName}" }
+    }
+
+    manifest {
+        attributes([
+                "Specification-Title"     : project.mod_id,
+                "Specification-Vendor"    : project.mod_author,
+                "Specification-Version"   : "1",
+                "Implementation-Title"    : project.name,
+                "Implementation-Version"  : version,
+                "Implementation-Vendor"   : project.mod_author,
+                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+        ])
+    }
+}
+
+publishing {
+    publications {
+        mavenForge(MavenPublication) {
+            artifactId = rootProject.archivesBaseName
+            artifact(remapJar) {
+                classifier null
+            }
+            artifact(sourcesJar) {
+                builtBy remapSourcesJar
+            }
+        }
+    }
+
+    repositories {
+
+    }
+}
