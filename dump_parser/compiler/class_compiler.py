@@ -2,6 +2,7 @@
 import json
 
 from .string_formatter import Component, ComponentProvider, Concat, String
+import re
 from typing import Any, Callable, Dict, List, TypeVar, Type, Union
 
 T = TypeVar('T')
@@ -167,7 +168,7 @@ class Class(ComponentProvider):
     constructors: List[Constructor]
 
     def __init__(self, json_entry: Dict) -> None:
-        self.orig_name = json_entry['name']
+        self.orig_name = json_entry['name'].replace("$", '.')
         try:
             self.path, self.name = self.orig_name.rsplit(".", maxsplit=1)
         except:
@@ -195,7 +196,8 @@ class Class(ComponentProvider):
                     classdef += f"extends {Controller.transform_classpath(self.clazz.superclass)} "
 
                 result = [ident * pad + classdef + "{"]
-                for method in self.clazz.methods:
+
+                for method in filter(lambda x: re.match('^[fm]_[\d_]+$', x.name) is None, self.clazz.methods):
                     used.add(method.name)
                     result.append(method.format().format(stepped, pad, step))
                 for field in filter(lambda x: x.name not in used, self.clazz.fields):
