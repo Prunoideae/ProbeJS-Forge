@@ -168,9 +168,9 @@ class Class(ComponentProvider):
     constructors: List[Constructor]
 
     def __init__(self, json_entry: Dict) -> None:
-        self.orig_name = json_entry['name'].replace("$", '.')
+        self.orig_name = json_entry['name']
         try:
-            self.path, self.name = self.orig_name.rsplit(".", maxsplit=1)
+            self.path, self.name = self.orig_name.replace("$", '.').rsplit(".", maxsplit=1)
         except:
             self.path = ''
             self.name = self.orig_name
