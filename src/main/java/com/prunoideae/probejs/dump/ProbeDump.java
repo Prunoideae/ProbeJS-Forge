@@ -5,6 +5,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.mojang.brigadier.Command;
+import com.prunoideae.probejs.plugin.WrappedEventHandler;
 import dev.latvian.mods.kubejs.KubeJS;
 import dev.latvian.mods.kubejs.KubeJSPaths;
 import dev.latvian.mods.kubejs.block.BlockRegistryEventJS;
@@ -26,6 +27,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.prunoideae.probejs.dump.ProcessBinding.*;
+import static com.prunoideae.probejs.dump.ProcessEvent.fetchEventData;
 import static com.prunoideae.probejs.dump.ProcessRecipe.fetchRecipeData;
 
 public class ProbeDump {
@@ -49,10 +51,12 @@ public class ProbeDump {
         finalData.add("classes", fetchClassData(bindingEvent));
         finalData.add("functions", fetchFunctionData(bindingEvent));
         finalData.add("recipes", fetchRecipeData(typeMap));
+        finalData.add("events", fetchEventData());
 
         HashSet<Class<?>> touchableClasses = new HashSet<>(bindingEvent.getClassDumpMap().values());
         touchableClasses.addAll(typeMap.values().stream().map(recipeTypeJS -> recipeTypeJS.factory.get().getClass()).collect(Collectors.toList()));
         touchableClasses.addAll(bindingEvent.getConstantDumpMap().values().stream().map(Object::getClass).collect(Collectors.toList()));
+        touchableClasses.addAll(WrappedEventHandler.capturedEvents.values());
         touchableClasses.addAll(Lists.newArrayList(
                 RecipeEventJS.class, ItemRegistryEventJS.class, BlockRegistryEventJS.class
         ));

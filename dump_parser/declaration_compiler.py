@@ -81,6 +81,7 @@ def main():
         print("/// <reference path=\"./globals.d.ts\" />", file=idx_file)
         print("/// <reference path=\"./constants.d.ts\" />", file=idx_file)
         print("/// <reference path=\"./java.d.ts\" />", file=idx_file)
+        print("/// <reference path=\"./events.d.ts\" />", file=idx_file)
 
         print("// The auto-generated index file", file=idx_file)
 
@@ -145,6 +146,13 @@ def main():
         print("/// <reference path=\"./globals.d.ts\" />", file=j_file)
         for c in filter(lambda x: x['allowed'], dump_probe['globalClasses']):
             print(f"declare function java(name: {json.dumps(c['name'])}): {Controller.transform_classpath(c['name'])};", file=j_file)
+
+    with open("./events.d.ts", 'w') as eve_file:
+        print("/// <reference path=\"./globals.d.ts\" />", file=eve_file)
+        for name, clazz in map(lambda x: (x['name'], x['classname']), dump_probe['events']):
+            clazz = Controller.transform_classpath(clazz)
+            print(f"declare function onEvent(name: {json.dumps(name)}, handler: (event: {clazz}) => void): void;", file=eve_file)
+            print(f"declare function captureEvent(name: {json.dumps(name)}, handler: (event: {clazz}) => void): void;", file=eve_file)
 
 
 if __name__ == "__main__":
