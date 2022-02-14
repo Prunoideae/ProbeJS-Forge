@@ -2,11 +2,13 @@ package com.prunoideae.probejs.dump;
 
 import com.google.gson.JsonArray;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
+import javax.lang.model.SourceVersion;
+import java.lang.reflect.*;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class ProcessGlobal {
@@ -18,12 +20,36 @@ public class ProcessGlobal {
             return clazz;
     }
 
+    private static boolean isClassName(String name) {
+        return name.contains(".") && SourceVersion.isName(name) && !SourceVersion.isKeyword(name);
+    }
+
     private static Set<Class<?>> touchClasses(Set<Class<?>> currentClasses) {
+
         HashSet<Class<?>> collected = new HashSet<>();
         currentClasses.forEach(clazz -> {
             collected.addAll(Arrays.stream(clazz.getFields()).map(Field::getType).map(ProcessGlobal::getClassOrComponent).collect(Collectors.toList()));
             collected.addAll(Arrays.stream(clazz.getMethods()).map(Method::getReturnType).map(ProcessGlobal::getClassOrComponent).collect(Collectors.toList()));
             collected.addAll(Arrays.stream(clazz.getMethods()).flatMap(method -> Arrays.stream(method.getParameterTypes())).map(ProcessGlobal::getClassOrComponent).collect(Collectors.toList()));
+            collected.addAll(Arrays.stream(clazz.getMethods())
+                    .flatMap(method -> Arrays.stream(method.getParameters()))
+                    .map(Parameter::getParameterizedType)
+                    .filter(type -> type instanceof ParameterizedType)
+                    .flatMap(type -> Arrays.stream(((ParameterizedType) type).getActualTypeArguments()))
+                    .map(Type::getTypeName)
+                    .filter(ProcessGlobal::isClassName)
+                    .map(clazzname -> {
+                        try {
+                            return Class.forName(clazzname);
+                        } catch (ClassNotFoundException e) {
+                            System.out.printf("A method tried to access %s, but this is not found in Class.forName()!%n", clazzname);
+                        }
+                        return null;
+                    })
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet()));
+
+
             collected.addAll(Arrays.stream(clazz.getConstructors()).flatMap(constructor -> Arrays.stream(constructor.getParameterTypes())).map(ProcessGlobal::getClassOrComponent).collect(Collectors.toList()));
             Class<?> superclass = clazz.getSuperclass();
             if (superclass != null && superclass != clazz)
