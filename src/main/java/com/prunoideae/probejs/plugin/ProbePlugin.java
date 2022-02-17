@@ -18,4 +18,8 @@ public class ProbePlugin extends KubeJSPlugin {
         }
         return null;
     }
+
+    private static Object onWrappedForgeEvent(BindingsEvent event, Object[] args) {
+        return null;
+    }
 }

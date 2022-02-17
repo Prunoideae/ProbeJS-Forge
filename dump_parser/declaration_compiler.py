@@ -7,7 +7,7 @@ from typing import Dict, List, Tuple
 
 from compiler.class_compiler import Controller, Class, Field, Method
 from compiler.constant_compiler import Constant
-from compiler.registry_compiler import compile_fluids, compile_items
+from compiler.registry_compiler import compile_fluids, compile_items, compile_tags
 from compiler.string_formatter import Component
 import special_compiler
 
@@ -42,13 +42,17 @@ def main():
 
     ### The KubeJS Registry Script Generation ###
 
-    os.chdir("./server_scripts")
-    item_component = compile_items(dump_kube['registries']['items'])
-    fluid_component = compile_fluids(dump_kube['registries']['fluids'])
-    with open('./dumps.js', 'w') as d_file:
-        print("// priority: 1000", file=d_file)
-        print(item_component.format(0, '', 0), file=d_file)
-        print(fluid_component.format(0, '', 0), file=d_file)
+    for folder in ['./server_scripts', './startup_scripts', './client_scripts']:
+        os.chdir(folder)
+        item_component = compile_items(dump_kube['registries']['items'])
+        fluid_component = compile_fluids(dump_kube['registries']['fluids'])
+        tags_component = compile_tags(dump_kube["tags"])
+        with open('./dumps.js', 'w') as d_file:
+            print("// priority: 1000", file=d_file)
+            print(item_component.format(0, '', 0), file=d_file)
+            print(fluid_component.format(0, '', 0), file=d_file)
+            print(tags_component.format(0, '', 0), file=d_file)
+        os.chdir("../")
 
     ### The ProbeJS Typing Script Generation ###
     os.chdir(basepath)
