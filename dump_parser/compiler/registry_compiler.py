@@ -73,6 +73,23 @@ def compile_items(json_entry: List[str]) -> Component:
     return Concat([String("const items = "), Bracket(item_comps).format(), String(";")])
 
 
+def compile_blocks(json_entry: List[str]) -> Component:
+    blocks = [StringEntry(j) for j in json_entry]
+    mod_map = {}
+    for block in blocks:
+        if block.mod not in mod_map:
+            mod_map[block.mod] = []
+        mod_map[block.mod].append(block)
+    block_comps = []
+    for mod, comps in mod_map.items():
+        mod: str
+        comps: List[StringEntry]
+        block_comps.append(MapEntry(mod, Bracket(
+            [MapEntry(comp.name, comp.format()).format() for comp in comps]).format()
+        ).format())
+    return Concat([String("const blocks = "), Bracket(block_comps).format(), String(";")])
+
+
 def compile_fluids(json_entry: List[str]) -> Component:
     fluids = [StringEntry(j) for j in json_entry]
     mod_map = {}
