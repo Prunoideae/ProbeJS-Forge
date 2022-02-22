@@ -8,6 +8,7 @@ from typing import Dict, List, Tuple
 from compiler.class_compiler import Controller, Class, Field, Method
 from compiler.constant_compiler import Constant
 from compiler.registry_compiler import compile_blocks, compile_fluids, compile_items, compile_tags
+from compiler.snippet_compiler import compile_simple_entry, compile_tag_entry
 from compiler.string_formatter import Component
 import special_compiler
 
@@ -44,17 +45,26 @@ def main():
 
     for folder in ['./server_scripts', './startup_scripts', './client_scripts']:
         os.chdir(folder)
-        item_component = compile_items(dump_kube['registries']['items'])
-        block_component = compile_blocks(dump_kube['registries']['blocks'])
-        fluid_component = compile_fluids(dump_kube['registries']['fluids'])
         tags_component = compile_tags(dump_kube["tags"])
         with open('./dumps.js', 'w') as d_file:
             print("// priority: 1000", file=d_file)
-            print(item_component.format(0, '', 0), file=d_file)
-            print(fluid_component.format(0, '', 0), file=d_file)
-            print(block_component.format(0, '', 0), file=d_file)
             print(tags_component.format(0, '', 0), file=d_file)
         os.chdir("../")
+
+    if not path.exists("./.vscode"):
+        os.mkdir("./.vscode")
+    os.chdir("./.vscode")
+    with open("./probe.code-snippets", 'w') as sni_file:
+        entries = {}
+        entries |= compile_simple_entry(dump_kube['registries']['items'], 'items')
+        entries |= compile_simple_entry(dump_kube['registries']['blocks'], 'blocks')
+        entries |= compile_simple_entry(dump_kube['registries']['fluids'], 'fluids')
+        entries |= compile_simple_entry(dump_kube['registries']['entity_types'], 'entities')
+        entries |= compile_tag_entry(dump_kube['tags']['entity_types'], 'entities')
+        entries |= compile_tag_entry(dump_kube['tags']['fluids'], 'fluids')
+        entries |= compile_tag_entry(dump_kube['tags']['items'], 'items')
+        entries |= compile_tag_entry(dump_kube['tags']['blocks'], 'blocks')
+        json.dump(entries, sni_file)
 
     ### The ProbeJS Typing Script Generation ###
     os.chdir(basepath)

@@ -118,10 +118,7 @@ def compile_tag(json_entry: Dict) -> Component:
             self.items = items
 
         def format(self) -> Component:
-            return Bracket([
-                MapEntry("tag", String(json.dumps(self.name))).format(),
-                MapEntry("members", Array([String(json.dumps(x)) for x in self.items]).format()).format(),
-            ]).format()
+            return Array([String(json.dumps(x)) for x in self.items]).format()
 
     tags = [TagEntry(k, v) for k, v in json_entry.items()]
     by_mod: Dict[str, List[TagEntry]] = {}
