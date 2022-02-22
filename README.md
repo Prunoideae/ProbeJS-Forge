@@ -2,11 +2,15 @@
 
 A data dumper for the KubeJS functions, constants and classes.
 
-Currently highly WIP.
+Currently highly WIP. But can be quite functional already:
+
+![image](./examples/2.gif)
+
+![image](./examples/3.gif)
 
 # Installation
 
-1. Get `npm` and `python3`.
+1. Get `npm` and `python3` (Must be python 3.9+).
 2. Compile the project and place the mod into your mod directory.
 3. Open the game, use `/probejs dump server` and `/kubejs export` commands in game to generate dump data (Both are needed now).
 4. Paste the files inside `dump_parser` into your `.minecraft/kubejs` directory, make sure that the `declaration_compiler.py` is at the kubejs folder, and no relative topology changes.
