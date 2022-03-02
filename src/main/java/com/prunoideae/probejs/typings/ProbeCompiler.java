@@ -25,21 +25,21 @@ public class ProbeCompiler {
     private static void resolveClassname(Set<Class<?>> globalClasses, Set<Class<?>> exportedClasses) {
         Set<String> usedNames = new HashSet<>();
         for (Class<?> clazz : globalClasses) {
-            if (TSGlobalClassFormatter.resolvedClassName.containsKey(clazz))
+            if (TSGlobalClassFormatter.resolvedClassName.containsKey(clazz.getName()))
                 continue;
             String fullName = clazz.getName();
             String[] paths = fullName.split("\\.");
             String resolvedName = exportedClasses.contains(clazz) ? "" : "Internal.";
             resolvedName += usedNames.contains(resolvedName + paths[paths.length - 1]) ? NameGuard.compileClasspath(paths) : paths[paths.length - 1];
             usedNames.add(resolvedName);
-            TSGlobalClassFormatter.resolvedClassName.put(clazz, resolvedName);
+            TSGlobalClassFormatter.resolvedClassName.put(clazz.getName(), resolvedName);
         }
     }
 
     public static Set<Class<?>> compileGlobal(Path outFile, Map<ResourceLocation, RecipeTypeJS> typeMap, DummyBindingEvent bindingEvent) {
         Set<Class<?>> touchableClasses = new HashSet<>(bindingEvent.getClassDumpMap().values());
         bindingEvent.getClassDumpMap().forEach((k, v) -> {
-            TSGlobalClassFormatter.resolvedClassName.put(v, k);
+            TSGlobalClassFormatter.resolvedClassName.put(v.getName(), k);
             touchableClasses.add(v);
         });
         touchableClasses.addAll(typeMap.values().stream().map(recipeTypeJS -> recipeTypeJS.factory.get().getClass()).collect(Collectors.toList()));
@@ -62,14 +62,16 @@ public class ProbeCompiler {
                     .forEach(clazz -> {
                         ClassInfo info = new ClassInfo(clazz);
                         TSGlobalClassFormatter.ClassFormatter formatter = new TSGlobalClassFormatter.ClassFormatter(info, 0, 4, s -> !Pattern.matches("^[fm]_[\\d_]+$", s));
-                        if (TSGlobalClassFormatter.resolvedClassName.get(clazz).contains(".")) {
-                            String fullName = TSGlobalClassFormatter.resolvedClassName.get(clazz);
+                        if (TSGlobalClassFormatter.resolvedClassName.get(clazz.getName()).contains(".")) {
+                            String fullName = TSGlobalClassFormatter.resolvedClassName.get(clazz.getName());
                             String[] paths = fullName.split("\\.");
                             String pathName = String.join(".", Arrays.copyOfRange(paths, 0, paths.length - 1));
                             namespacedClasses.computeIfAbsent(pathName, p -> new ArrayList<>()).add(formatter);
                         } else {
                             try {
                                 writer.write("declare " + formatter.format());
+                                if (info.getClazz().isInterface())
+                                    writer.write("declare const %s: %s;\n".formatted(TSGlobalClassFormatter.resolvedClassName.get(clazz.getName()), TSGlobalClassFormatter.resolvedClassName.get(clazz.getName())));
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
@@ -117,8 +119,8 @@ public class ProbeCompiler {
             WrappedEventHandler.capturedEvents.forEach(
                     (capture, event) -> {
                         try {
-                            writer.write("declare function onEvent(name: \"%s\", handler: (event: %s) => void);\n".formatted(capture, TSGlobalClassFormatter.resolvedClassName.get(event)));
-                            writer.write("declare function captureEvent(name: \"%s\", handler: (event: %s) => void);\n".formatted(capture, TSGlobalClassFormatter.resolvedClassName.get(event)));
+                            writer.write("declare function onEvent(name: \"%s\", handler: (event: %s) => void);\n".formatted(capture, TSGlobalClassFormatter.resolvedClassName.get(event.getName())));
+                            writer.write("declare function captureEvent(name: \"%s\", handler: (event: %s) => void);\n".formatted(capture, TSGlobalClassFormatter.resolvedClassName.get(event.getName())));
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -139,7 +141,7 @@ public class ProbeCompiler {
                             if (TSGlobalClassFormatter.staticValueTransformer.containsKey(value.getClass()))
                                 writer.write("declare const %s: %s;\n".formatted(name, TSGlobalClassFormatter.staticValueTransformer.get(value.getClass()).apply(value)));
                             else
-                                writer.write("declare const %s: %s;\n".formatted(name, TSGlobalClassFormatter.resolvedClassName.get(value.getClass())));
+                                writer.write("declare const %s: %s;\n".formatted(name, TSGlobalClassFormatter.resolvedClassName.get(value.getClass().getName())));
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -155,10 +157,11 @@ public class ProbeCompiler {
         try (BufferedWriter writer = Files.newBufferedWriter(outFile)) {
             writer.write("/// <reference path=\"./globals.d.ts\" />\n");
             classes.stream()
+                    .filter(clazz -> !clazz.isInterface())
                     .filter(clazz -> ServerScriptManager.instance.scriptManager.isClassAllowed(clazz.getName()))
                     .forEach(clazz -> {
                         try {
-                            writer.write("declare function java(name: \"%s\"): %s;\n".formatted(clazz.getName(), TSGlobalClassFormatter.resolvedClassName.get(clazz)));
+                            writer.write("declare function java(name: \"%s\"): %s;\n".formatted(clazz.getName(), TSGlobalClassFormatter.resolvedClassName.get(clazz.getName())));
                         } catch (IOException e) {
                             e.printStackTrace();
                         }

@@ -28,6 +28,10 @@ public final class ClassInfo {
             return classType;
         }
 
+        public Type getType() {
+            return type;
+        }
+
         public List<Type> getTypeArguments() {
             if (this.type instanceof ParameterizedType) {
                 return Arrays.stream(((ParameterizedType) this.type).getActualTypeArguments()).collect(Collectors.toList());
@@ -156,7 +160,9 @@ public final class ClassInfo {
     }
 
     public List<MethodInfo> getMethods() {
-        return Arrays.stream(this.clazz.getMethods()).map(MethodInfo::new).collect(Collectors.toList());
+        Set<Method> superMethod = new HashSet<>();
+        this.getSuperClass().forEach(cls -> superMethod.addAll(List.of(cls.getMethods())));
+        return Arrays.stream(this.clazz.getMethods()).filter(method -> !superMethod.contains(method)).map(MethodInfo::new).collect(Collectors.toList());
     }
 
     public List<ConstructorInfo> getConstructors() {
@@ -167,11 +173,22 @@ public final class ClassInfo {
         return Arrays.stream(this.clazz.getFields()).map(FieldInfo::new).collect(Collectors.toList());
     }
 
-    public Class<?> getSuperClass() {
-        Class<?> superClass = this.clazz.getSuperclass();
-        if (superClass != Object.class)
-            return superClass;
-        return null;
+    public List<Class<?>> getSuperClass() {
+        List<Class<?>> classes = new ArrayList<>();
+        if (!this.clazz.isInterface())
+            classes.add(clazz.getSuperclass());
+        classes.addAll(List.of(clazz.getInterfaces()));
+        classes.removeIf(Objects::isNull);
+        return classes;
+    }
+
+    public List<Type> getSuperTypes() {
+        List<Type> types = new ArrayList<>();
+        if (!this.clazz.isInterface() && this.clazz.getSuperclass() != Object.class)
+            types.add(this.clazz.getGenericSuperclass());
+        types.addAll(List.of(this.clazz.getGenericInterfaces()));
+        types.removeIf(Objects::isNull);
+        return types;
     }
 
     @Override

@@ -3,7 +3,7 @@ package com.prunoideae.probejs.typings;
 import com.mojang.datafixers.util.Pair;
 import com.prunoideae.probejs.toucher.ClassInfo;
 
-import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.*;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -13,7 +13,7 @@ public class TSGlobalClassFormatter {
     public static HashMap<Class<?>, Function<ClassInfo.TypeInfo, String>> specialTypeFormatter = new HashMap<>();
     public static HashMap<Class<?>, Class<? extends ClassFormatter>> specialClassFormatter = new HashMap<>();
     public static HashMap<Class<?>, Function<Object, String>> staticValueTransformer = new HashMap<>();
-    public static HashMap<Class<?>, String> resolvedClassName = new HashMap<>();
+    public static HashMap<String, String> resolvedClassName = new HashMap<>();
 
     private static Pair<Class<?>, Integer> getClassOrComponent(Class<?> clazz) {
         if (clazz == null)
@@ -24,6 +24,33 @@ public class TSGlobalClassFormatter {
             depth++;
         }
         return new Pair<>(clazz, depth);
+    }
+
+    public static String serializeType(Type type) {
+        if (type instanceof TypeVariable)
+            return ((TypeVariable<?>) type).getName();
+        if (type instanceof WildcardType) {
+            if (((WildcardType) type).getLowerBounds().length != 0)
+                return serializeType(((WildcardType) type).getLowerBounds()[0]);
+            if (((WildcardType) type).getUpperBounds()[0] != Object.class)
+                return serializeType(((WildcardType) type).getUpperBounds()[0]);
+            return "any";
+        }
+        if (type instanceof ParameterizedType) {
+            return serializeType(((ParameterizedType) type).getRawType()) + "<%s>".formatted(Arrays.stream(((ParameterizedType) type).getActualTypeArguments()).map(TSGlobalClassFormatter::serializeType).collect(Collectors.joining(", ")));
+        }
+        if (type instanceof GenericArrayType) {
+            return serializeType(((GenericArrayType) type).getGenericComponentType()) + "[]";
+        }
+        int depth = 0;
+        if (type instanceof Class) {
+            if (((Class<?>) type).isArray()) {
+                Pair<Class<?>, Integer> pair = getClassOrComponent((Class<?>) type);
+                depth = pair.getSecond();
+                type = pair.getFirst();
+            }
+        }
+        return resolvedClassName.get(type.getTypeName()) + "[]".repeat(depth);
     }
 
     public static class TypeFormatter implements ITSFormatter {
@@ -42,12 +69,13 @@ public class TSGlobalClassFormatter {
                 clazz = pair.getFirst();
                 arrayDepth = pair.getSecond();
             }
-            String resolvedType = (specialTypeFormatter.containsKey(clazz)
+            String resolvedType = specialTypeFormatter.containsKey(clazz)
                     ? specialTypeFormatter.get(clazz).apply(this.typeInfo)
-                    : resolvedClassName.get(clazz));
+                    : serializeType(this.typeInfo.getType());
             if (arrayDepth != -1)
                 resolvedType += "[]".repeat(arrayDepth);
             return resolvedType;
+
         }
     }
 
@@ -220,10 +248,17 @@ public class TSGlobalClassFormatter {
             List<String> innerLines = new ArrayList<>();
 
             //Compile the first line of class declaration
-            String[] classPath = resolvedClassName.get(this.classInfo.getClazz()).split("\\.");
-            String firstLine = "%sclass %s ".formatted(" ".repeat(this.indentation), classPath[classPath.length - 1]);
-            if (classInfo.getSuperClass() != null)
-                firstLine += "extends %s ".formatted(resolvedClassName.get(classInfo.getSuperClass()));
+            String[] classPath = resolvedClassName.get(this.classInfo.getClazz().getName()).split("\\.");
+            String firstLine = "%s%s %s%s ".formatted(
+                    " ".repeat(this.indentation),
+                    this.classInfo.getClazz().isInterface() ? "interface" : "class",
+                    classPath[classPath.length - 1],
+                    (this.classInfo.getClazz().getTypeParameters().length != 0
+                            ? "<" + Arrays.stream(this.classInfo.getClazz().getTypeParameters()).map(Type::getTypeName).collect(Collectors.joining(", ")) + ">"
+                            : ""));
+            if (classInfo.getSuperTypes().size() != 0) {
+                firstLine += "extends %s".formatted(classInfo.getSuperTypes().stream().map(TSGlobalClassFormatter::serializeType).collect(Collectors.joining(", ")));
+            }
             innerLines.add(firstLine + "{");
 
             //Compile methods, fields and constructors

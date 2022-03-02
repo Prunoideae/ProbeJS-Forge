@@ -3,8 +3,9 @@ package com.prunoideae.probejs.toucher;
 import com.google.common.primitives.Primitives;
 
 import javax.lang.model.SourceVersion;
-import java.lang.reflect.Type;
+import java.lang.reflect.*;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class ClassToucher {
@@ -59,35 +60,45 @@ public class ClassToucher {
         return this;
     }
 
-    private static List<Class<?>> touchType(ClassInfo.TypeInfo info) {
-        List<Class<?>> touched = new ArrayList<>();
-        touched.add(info.getTypeClass());
-        if (info.getTypeArguments() != null)
-            touched.addAll(info.getTypeArguments().stream().map(Type::getTypeName).filter(ClassToucher::isClassName).map(className -> {
-                try {
-                    return Class.forName(className);
-                } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
-                }
-                return null;
-            }).filter(Objects::nonNull).collect(Collectors.toList()));
-        return touched;
+    private static List<Class<?>> touchType(Type info) {
+        if (info instanceof TypeVariable)
+            return new ArrayList<>();
+        if (info instanceof WildcardType) {
+            List<Type> bounds = new ArrayList<>(List.of(((WildcardType) info).getLowerBounds()));
+            bounds.addAll(List.of(((WildcardType) info).getUpperBounds()));
+            return bounds.stream().map(ClassToucher::touchType).flatMap(Collection::stream).collect(Collectors.toList());
+        }
+        if (info instanceof GenericArrayType)
+            return touchType(((GenericArrayType) info).getGenericComponentType());
+        if (info instanceof ParameterizedType) {
+            List<Type> types = new ArrayList<>();
+            types.add(((ParameterizedType) info).getRawType());
+            types.addAll(List.of(((ParameterizedType) info).getActualTypeArguments()));
+            return types.stream().map(ClassToucher::touchType).flatMap(Collection::stream).collect(Collectors.toList());
+        }
+        if (info instanceof Class) {
+            return List.of((Class<?>) info);
+        }
+        throw new UnsupportedOperationException("Unknown type! %s (%s)".formatted(info.getTypeName(), info.getClass()));
     }
 
     public Set<Class<?>> touchClass() {
         Set<Class<?>> touched = new HashSet<>();
-        if (this.dumpSuper && this.baseClass.getSuperclass() != Object.class)
-            touched.add(this.baseClass.getSuperclass());
         ClassInfo baseInfo = new ClassInfo(this.baseClass);
+
+        if (this.dumpSuper) {
+            baseInfo.getSuperTypes().forEach(type -> touched.addAll(touchType(type)));
+        }
+
         if (this.dumpFields)
-            baseInfo.getFields().forEach(fieldInfo -> touched.addAll(touchType(fieldInfo.getTypeInfo())));
+            baseInfo.getFields().forEach(fieldInfo -> touched.addAll(touchType(fieldInfo.getTypeInfo().getType())));
         if (this.dumpMethods)
             baseInfo.getMethods().forEach(methodInfo -> {
-                methodInfo.getParamsInfo().forEach(paramInfo -> touched.addAll(touchType(paramInfo)));
-                touched.addAll(touchType(methodInfo.getReturnTypeInfo()));
+                methodInfo.getParamsInfo().forEach(paramInfo -> touched.addAll(touchType(paramInfo.getType())));
+                touched.addAll(touchType(methodInfo.getReturnTypeInfo().getType()));
             });
         if (this.dumpConstructors)
-            baseInfo.getConstructors().forEach(constructorInfo -> constructorInfo.getParamsInfo().forEach(paramInfo -> touched.addAll(touchType(paramInfo))));
+            baseInfo.getConstructors().forEach(constructorInfo -> constructorInfo.getParamsInfo().forEach(paramInfo -> touched.addAll(touchType(paramInfo.getType()))));
 
         return touched
                 .stream()

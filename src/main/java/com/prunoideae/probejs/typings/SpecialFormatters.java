@@ -16,7 +16,7 @@ public class SpecialFormatters {
 
     private static void putResolvedNames(String name, Class<?>... classes) {
         for (Class<?> clazz : classes) {
-            TSGlobalClassFormatter.resolvedClassName.put(clazz, name);
+            TSGlobalClassFormatter.resolvedClassName.put(clazz.getName(), name);
         }
     }
 
@@ -28,17 +28,8 @@ public class SpecialFormatters {
         return typeInfo -> {
             List<Type> s = typeInfo.getTypeArguments();
             if (s.size() != paramCount)
-                return TSGlobalClassFormatter.resolvedClassName.get(typeInfo.getTypeClass());
-            List<String> formatted = s.stream().map(arg -> {
-                if (ClassToucher.isClassName(arg.getTypeName())) {
-                    try {
-                        return new TSGlobalClassFormatter.TypeFormatter(new ClassInfo.TypeInfo(arg, Class.forName(arg.getTypeName()))).format();
-                    } catch (ClassNotFoundException e) {
-                        e.printStackTrace();
-                    }
-                }
-                return "any";
-            }).collect(Collectors.toList());
+                return TSGlobalClassFormatter.resolvedClassName.get(typeInfo.getTypeClass().getName());
+            List<String> formatted = s.stream().map(TSGlobalClassFormatter::serializeType).collect(Collectors.toList());
             return "(%s) => %s".formatted(
                     IntStream.range(0, formatted.size())
                             .mapToObj(index -> "arg%d: %s".formatted(index, formatted.get(index)))
@@ -52,17 +43,8 @@ public class SpecialFormatters {
         return typeInfo -> {
             List<Type> s = typeInfo.getTypeArguments();
             if (s.size() != paramCount)
-                return TSGlobalClassFormatter.resolvedClassName.get(typeInfo.getTypeClass());
-            List<String> formatted = s.stream().map(arg -> {
-                if (ClassToucher.isClassName(arg.getTypeName())) {
-                    try {
-                        return new TSGlobalClassFormatter.TypeFormatter(new ClassInfo.TypeInfo(arg, Class.forName(arg.getTypeName()))).format();
-                    } catch (ClassNotFoundException e) {
-                        e.printStackTrace();
-                    }
-                }
-                return "any";
-            }).collect(Collectors.toList());
+                return TSGlobalClassFormatter.resolvedClassName.get(typeInfo.getType().getTypeName());
+            List<String> formatted = s.stream().map(TSGlobalClassFormatter::serializeType).collect(Collectors.toList());
             return "(%s) => %s".formatted(
                     IntStream.range(0, formatted.size() - 1)
                             .mapToObj(index -> "arg%d: %s".formatted(index, formatted.get(index)))
@@ -99,7 +81,6 @@ public class SpecialFormatters {
         putResolvedNames("void", Void.TYPE, Void.class);
         putResolvedNames("string", String.class);
         putResolvedNames("object", Object.class);
-        putResolvedNames("object", CompoundTag.class);
 
         putStaticValueTransformer(
                 Object::toString,
