@@ -1,4 +1,4 @@
-package com.prunoideae.probejs.dump;
+package com.prunoideae.probejs.typings;
 
 import dev.latvian.mods.kubejs.script.BindingsEvent;
 import dev.latvian.mods.kubejs.script.ScriptManager;

@@ -1,0 +1,217 @@
+package com.prunoideae.probejs.typings;
+
+import com.google.common.primitives.Primitives;
+import com.mojang.datafixers.util.Pair;
+import com.prunoideae.probejs.ProbeJS;
+import com.prunoideae.probejs.plugin.WrappedEventHandler;
+import com.prunoideae.probejs.toucher.ClassInfo;
+import com.prunoideae.probejs.toucher.ClassToucher;
+import dev.latvian.mods.kubejs.KubeJSPaths;
+import dev.latvian.mods.kubejs.recipe.RecipeTypeJS;
+import dev.latvian.mods.kubejs.recipe.RegisterRecipeHandlersEvent;
+import dev.latvian.mods.kubejs.server.ServerScriptManager;
+import dev.latvian.mods.kubejs.util.KubeJSPlugins;
+import net.minecraft.resources.ResourceLocation;
+
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+public class ProbeCompiler {
+    private static void resolveClassname(Set<Class<?>> globalClasses, Set<Class<?>> exportedClasses) {
+        Set<String> usedNames = new HashSet<>();
+        for (Class<?> clazz : globalClasses) {
+            if (TSGlobalClassFormatter.resolvedClassName.containsKey(clazz))
+                continue;
+            String fullName = clazz.getName();
+            String[] paths = fullName.split("\\.");
+            String resolvedName = exportedClasses.contains(clazz) ? "" : "Internal.";
+            resolvedName += usedNames.contains(resolvedName + paths[paths.length - 1]) ? NameGuard.compileClasspath(paths) : paths[paths.length - 1];
+            usedNames.add(resolvedName);
+            TSGlobalClassFormatter.resolvedClassName.put(clazz, resolvedName);
+        }
+    }
+
+    public static Set<Class<?>> compileGlobal(Path outFile, Map<ResourceLocation, RecipeTypeJS> typeMap, DummyBindingEvent bindingEvent) {
+        Set<Class<?>> touchableClasses = new HashSet<>(bindingEvent.getClassDumpMap().values());
+        bindingEvent.getClassDumpMap().forEach((k, v) -> {
+            TSGlobalClassFormatter.resolvedClassName.put(v, k);
+            touchableClasses.add(v);
+        });
+        touchableClasses.addAll(typeMap.values().stream().map(recipeTypeJS -> recipeTypeJS.factory.get().getClass()).collect(Collectors.toList()));
+        touchableClasses.addAll(bindingEvent.getConstantDumpMap().values().stream().map(Object::getClass).collect(Collectors.toList()));
+        touchableClasses.addAll(WrappedEventHandler.capturedEvents.values());
+
+        ProbeJS.LOGGER.info("Querying all classes accessible...");
+        Set<Class<?>> globalClasses = new HashSet<>(touchableClasses);
+        touchableClasses.forEach(clazz -> globalClasses.addAll(new ClassToucher(clazz).touchClassRecursive()));
+        resolveClassname(globalClasses, new HashSet<>(bindingEvent.getClassDumpMap().values()));
+
+        HashMap<String, List<TSGlobalClassFormatter.ClassFormatter>> namespacedClasses = new HashMap<>();
+
+        ProbeJS.LOGGER.info("Compiling classes to declarations...");
+        try (BufferedWriter writer = Files.newBufferedWriter(outFile)) {
+            globalClasses
+                    .stream()
+                    .filter(clazz -> !Primitives.allPrimitiveTypes().contains(clazz))
+                    .filter(clazz -> !Primitives.allWrapperTypes().contains(clazz))
+                    .forEach(clazz -> {
+                        ClassInfo info = new ClassInfo(clazz);
+                        TSGlobalClassFormatter.ClassFormatter formatter = new TSGlobalClassFormatter.ClassFormatter(info, 0, 4, s -> !Pattern.matches("^[fm]_[\\d_]+$", s));
+                        if (TSGlobalClassFormatter.resolvedClassName.get(clazz).contains(".")) {
+                            String fullName = TSGlobalClassFormatter.resolvedClassName.get(clazz);
+                            String[] paths = fullName.split("\\.");
+                            String pathName = String.join(".", Arrays.copyOfRange(paths, 0, paths.length - 1));
+                            namespacedClasses.computeIfAbsent(pathName, p -> new ArrayList<>()).add(formatter);
+                        } else {
+                            try {
+                                writer.write("declare " + formatter.format());
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
+
+            HashMap<String, List<Pair<String, TSGlobalClassFormatter.TypeFormatter>>> recipeMethodClassPlaceholder = new HashMap<>();
+            Set<Pair<String, String>> recipeHolderFields = new HashSet<>();
+            typeMap.forEach((k, v) -> {
+                String namespace = k.getNamespace();
+                namespace = namespace.substring(0, 1).toUpperCase(Locale.ROOT) + namespace.substring(1);
+                recipeMethodClassPlaceholder.computeIfAbsent(namespace, s -> new ArrayList<>()).add(new Pair<>(k.getPath(), new TSGlobalClassFormatter.TypeFormatter(new ClassInfo.TypeInfo(v.factory.get().getClass(), v.factory.get().getClass()))));
+                recipeHolderFields.add(new Pair<>(k.getNamespace(), "stub.probejs.recipes.%s".formatted(namespace)));
+            });
+
+            List<TSGlobalClassFormatter.ClassFormatter> dummyRecipeClasses = new ArrayList<>();
+            recipeMethodClassPlaceholder.forEach((k, v) -> {
+                dummyRecipeClasses.add(new TSDummyClassFormatter.DummyMethodClassFormatter(k, v));
+            });
+            namespacedClasses.put("stub.probejs.recipes", dummyRecipeClasses);
+            namespacedClasses.put("stub.probejs", List.of(new TSDummyClassFormatter.DummyFieldClassFormatter("RecipeHolder", recipeHolderFields.stream().toList())));
+
+            namespacedClasses.forEach((k, v) -> {
+
+                try {
+                    writer.write(new TSGlobalClassFormatter.NamespaceFormatter(k, v, 4, 0, false).format());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            });
+            writer.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        ProbeJS.LOGGER.info("Done!");
+        return globalClasses;
+    }
+
+    public static void compileEvent(Path outFile) {
+        ProbeJS.LOGGER.info("Compiling captured events...");
+        try (BufferedWriter writer = Files.newBufferedWriter(outFile)) {
+            writer.write("/// <reference path=\"./globals.d.ts\" />\n");
+            WrappedEventHandler.capturedEvents.forEach(
+                    (capture, event) -> {
+                        try {
+                            writer.write("declare function onEvent(name: \"%s\", handler: (event: %s) => void);\n".formatted(capture, TSGlobalClassFormatter.resolvedClassName.get(event)));
+                            writer.write("declare function captureEvent(name: \"%s\", handler: (event: %s) => void);\n".formatted(capture, TSGlobalClassFormatter.resolvedClassName.get(event)));
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+            );
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void compileConstants(Path outFile, DummyBindingEvent bindingEvent) {
+        ProbeJS.LOGGER.info("Compiling constants definitions...");
+        try (BufferedWriter writer = Files.newBufferedWriter(outFile)) {
+            writer.write("/// <reference path=\"./globals.d.ts\" />\n");
+            bindingEvent.getConstantDumpMap().forEach(
+                    (name, value) -> {
+                        try {
+                            if (TSGlobalClassFormatter.staticValueTransformer.containsKey(value.getClass()))
+                                writer.write("declare const %s: %s;\n".formatted(name, TSGlobalClassFormatter.staticValueTransformer.get(value.getClass()).apply(value)));
+                            else
+                                writer.write("declare const %s: %s;\n".formatted(name, TSGlobalClassFormatter.resolvedClassName.get(value.getClass())));
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+            );
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void compileJava(Path outFile, Set<Class<?>> classes) {
+        ProbeJS.LOGGER.info("Compiling java() definitions...");
+        try (BufferedWriter writer = Files.newBufferedWriter(outFile)) {
+            writer.write("/// <reference path=\"./globals.d.ts\" />\n");
+            classes.stream()
+                    .filter(clazz -> ServerScriptManager.instance.scriptManager.isClassAllowed(clazz.getName()))
+                    .forEach(clazz -> {
+                        try {
+                            writer.write("declare function java(name: \"%s\"): %s;\n".formatted(clazz.getName(), TSGlobalClassFormatter.resolvedClassName.get(clazz)));
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    });
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void compileIndex(Path outFile) {
+        try (BufferedWriter writer = Files.newBufferedWriter(outFile)) {
+            writer.write("/// <reference path=\"./globals.d.ts\" />\n");
+            writer.write("/// <reference path=\"./events.d.ts\" />\n");
+            writer.write("/// <reference path=\"./constants.d.ts\" />\n");
+            writer.write("/// <reference path=\"./java.d.ts\" />\n");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void compileJSConfig(Path outFile) {
+        try (BufferedWriter writer = Files.newBufferedWriter(outFile)) {
+            writer.write("""
+                    {
+                        "compilerOptions": {
+                            "lib": ["ES5", "ES2015"],
+                            "typeRoots": ["kubetypings"]
+                        }
+                    }""");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void compileDeclarations() throws IOException {
+        Path typingDir = KubeJSPaths.DIRECTORY.resolve("kubetypings");
+        if (Files.notExists(typingDir))
+            Files.createDirectories(typingDir);
+        DummyBindingEvent bindingEvent = new DummyBindingEvent(ServerScriptManager.instance.scriptManager);
+        Map<ResourceLocation, RecipeTypeJS> typeMap = new HashMap<>();
+        RegisterRecipeHandlersEvent recipeEvent = new RegisterRecipeHandlersEvent(typeMap);
+
+        KubeJSPlugins.forEachPlugin(plugin -> plugin.addRecipes(recipeEvent));
+        KubeJSPlugins.forEachPlugin(plugin -> plugin.addBindings(bindingEvent));
+
+        Set<Class<?>> touchedClasses = compileGlobal(typingDir.resolve("globals.d.ts"), typeMap, bindingEvent);
+        compileEvent(typingDir.resolve("events.d.ts"));
+        compileConstants(typingDir.resolve("constants.d.ts"), bindingEvent);
+        compileJava(typingDir.resolve("java.d.ts"), touchedClasses);
+        compileIndex(typingDir.resolve("index.d.ts"));
+        if (Files.notExists(KubeJSPaths.DIRECTORY.resolve("jsconfig.json")))
+            compileJSConfig(KubeJSPaths.DIRECTORY.resolve("jsconfig.json"));
+        ProbeJS.LOGGER.info("All done!");
+    }
+
+}
