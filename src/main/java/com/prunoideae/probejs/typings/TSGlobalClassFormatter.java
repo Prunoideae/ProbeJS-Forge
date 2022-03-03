@@ -2,6 +2,7 @@ package com.prunoideae.probejs.typings;
 
 import com.mojang.datafixers.util.Pair;
 import com.prunoideae.probejs.toucher.ClassInfo;
+import dev.latvian.mods.kubejs.recipe.RecipeEventJS;
 
 import java.lang.reflect.*;
 import java.util.*;
@@ -14,6 +15,10 @@ public class TSGlobalClassFormatter {
     public static HashMap<Class<?>, Class<? extends ClassFormatter>> specialClassFormatter = new HashMap<>();
     public static HashMap<Class<?>, Function<Object, String>> staticValueTransformer = new HashMap<>();
     public static HashMap<String, String> resolvedClassName = new HashMap<>();
+
+    private static String getCamelCase(String text) {
+        return Character.toLowerCase(text.charAt(0)) + text.substring(1);
+    }
 
     private static Pair<Class<?>, Integer> getClassOrComponent(Class<?> clazz) {
         if (clazz == null)
@@ -72,6 +77,11 @@ public class TSGlobalClassFormatter {
             String resolvedType = specialTypeFormatter.containsKey(clazz)
                     ? specialTypeFormatter.get(clazz).apply(this.typeInfo)
                     : serializeType(this.typeInfo.getType());
+            //Ensure to resolve type since TS does not allow non-parameterized types.
+            if (this.typeInfo.getType() instanceof Class<?> type) {
+                if (type.getTypeParameters().length != 0)
+                    resolvedType += "<%s>".formatted(String.join(",", Collections.nCopies(type.getTypeParameters().length, "unknown")));
+            }
             if (arrayDepth != -1)
                 resolvedType += "[]".repeat(arrayDepth);
             return resolvedType;
@@ -136,6 +146,8 @@ public class TSGlobalClassFormatter {
             String formatted = "%s: %s;".formatted(this.fieldInfo.getName(), resolvedAnnotation);
             if (this.fieldInfo.isStatic())
                 formatted = "static " + formatted;
+            if (this.fieldInfo.isFinal())
+                formatted = "readonly " + formatted;
             return formatted;
         }
     }
@@ -205,9 +217,106 @@ public class TSGlobalClassFormatter {
         protected List<String> compileMethods() {
             int linesIdent = this.indentation + stepIndentation;
             List<String> innerLines = new ArrayList<>();
+            /* TODO: add support for beans
+             * Criteria: tranfsorm .get?() methods to .? fields.
+             * If an field of same name exist, ignore it.
+             * .get() beans will be readonly, having a .set() will remove the readonly statement.
+             * Only having a .set() will NOT make this write-only as TS does not have such a thing.
+             * */
+
+            Set<ClassInfo.MethodInfo> beaned = new HashSet<>();
+            Set<String> existedNames = classInfo.getFields().stream().map(ClassInfo.FieldInfo::getName).collect(Collectors.toSet());
+            existedNames.addAll(classInfo.getMethods().stream().map(ClassInfo.MethodInfo::getName).collect(Collectors.toSet()));
+
+            //Add class getters/setters to beaned
+            classInfo.getMethods()
+                    .stream()
+                    .filter(methodInfo -> !methodInfo.getName().equals("get"))
+                    .filter(methodInfo -> methodInfo.getName().startsWith("get"))
+                    .filter(methodInfo -> !Character.isDigit(methodInfo.getName().substring(3).charAt(0)))
+                    .filter(methodInfo -> !existedNames.contains(getCamelCase(methodInfo.getName().substring(3))))
+                    .filter(methodInfo -> methodInfo.getParamsInfo().size() == 0)
+                    .forEach(beaned::add);
+
+            classInfo.getMethods()
+                    .stream()
+                    .filter(methodInfo -> !methodInfo.getName().equals("set"))
+                    .filter(methodInfo -> methodInfo.getName().startsWith("set"))
+                    .filter(methodInfo -> !Character.isDigit(methodInfo.getName().substring(3).charAt(0)))
+                    .filter(methodInfo -> methodInfo.getParamsInfo().size() == 1)
+                    .filter(methodInfo -> !existedNames.contains(getCamelCase(methodInfo.getName().substring(3))))
+                    .forEach(beaned::add);
+
+            //Iterate through getter/setters, generate beans.
+            Set<String> beanedNames = new HashSet<>();
+            HashMap<String, ClassInfo.MethodInfo> cachedGetterNames = new HashMap<>();
+            beaned.forEach(methodInfo -> {
+                //TODO: Make it more convenient, although idk how
+                if (classInfo.getClazz() == RecipeEventJS.class) {
+                    if (methodInfo.getName().equals("getRecipes"))
+                        return;
+                }
+                String beanName = getCamelCase(methodInfo.getName().substring(3));
+                if (methodInfo.getName().startsWith("get")) {
+                    if (beanedNames.contains(beanName))
+                        return;
+                    cachedGetterNames.put(beanName, methodInfo);
+                } else if (methodInfo.getName().startsWith("set")) {
+                    beanedNames.add(beanName);
+                    cachedGetterNames.remove(beanName);
+                    Type type = methodInfo.getParamsInfo().get(0).getType();
+                    String resolved = serializeType(type);
+                    if (type instanceof Class<?> clazz) {
+                        if (clazz.getTypeParameters().length != 0)
+                            resolved += "<%s>".formatted(String.join(",", Collections.nCopies(clazz.getTypeParameters().length, "unknown")));
+                    }
+                    String formatted = "%s: %s;".formatted(beanName, resolved);
+                    if (methodInfo.isStatic())
+                        formatted = "static " + formatted;
+                    innerLines.add(" ".repeat(linesIdent) + formatted);
+                }
+            });
+
+            classInfo.getMethods()
+                    .stream()
+                    .filter(methodInfo -> !methodInfo.getName().equals("is"))
+                    .filter(methodInfo -> methodInfo.getName().startsWith("is"))
+                    .filter(methodInfo -> !Character.isDigit(methodInfo.getName().substring(2).charAt(0)))
+                    .filter(methodInfo -> !existedNames.contains(getCamelCase(methodInfo.getName().substring(2))))
+                    .filter(methodInfo -> methodInfo.getParamsInfo().size() == 0)
+                    .filter(methodInfo -> {
+                        Type type = methodInfo.getReturnTypeInfo().getType();
+                        return type instanceof Class && (type == Boolean.TYPE || type == Boolean.class);
+                    })
+                    .filter(methodInfo -> !beanedNames.contains(getCamelCase(methodInfo.getName().substring(2))))
+                    .forEach(methodInfo -> {
+                        beaned.add(methodInfo);
+                        String formatted = "%s: boolean;".formatted(getCamelCase(methodInfo.getName().substring(2)));
+                        if (methodInfo.isStatic())
+                            formatted = "static " + formatted;
+                        formatted = "readonly " + formatted;
+                        innerLines.add(" ".repeat(linesIdent) + formatted);
+                    });
+
+
+            cachedGetterNames.forEach((k, v) -> {
+                Type type = v.getReturnTypeInfo().getType();
+                String resolved = serializeType(v.getReturnTypeInfo().getType());
+                if (type instanceof Class<?> clazz) {
+                    if (clazz.getTypeParameters().length != 0)
+                        resolved += "<%s>".formatted(String.join(",", Collections.nCopies(clazz.getTypeParameters().length, "any")));
+                }
+                String formatted = "%s: %s;".formatted(k, resolved);
+                if (v.isStatic())
+                    formatted = "static " + formatted;
+                formatted = "readonly " + formatted;
+                innerLines.add(" ".repeat(linesIdent) + formatted);
+            });
+
             classInfo.getMethods()
                     .stream()
                     .filter(methodInfo -> this.namePredicate.test(methodInfo.getName()))
+                    .filter(methodInfo -> !beaned.contains(methodInfo))
                     .forEach(methodInfo -> innerLines.add(" ".repeat(linesIdent) + new MethodFormatter(methodInfo).format()));
             return innerLines;
         }

@@ -92,6 +92,19 @@ public final class ClassInfo {
         }
 
         @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            MethodInfo that = (MethodInfo) o;
+            return method.equals(that.method);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(method);
+        }
+
+        @Override
         public String toString() {
             return "MethodInfo[" +
                     "method=" + method + ']';
@@ -135,6 +148,10 @@ public final class ClassInfo {
 
         public boolean isStatic() {
             return Modifier.isStatic(this.field.getModifiers());
+        }
+
+        public boolean isFinal() {
+            return Modifier.isFinal(this.field.getModifiers());
         }
 
         public TypeInfo getTypeInfo() {

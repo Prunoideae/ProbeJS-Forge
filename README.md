@@ -35,3 +35,18 @@ Auto-completion, type-hinting for most of the functions and classes:
 3. Reload your IDE if your IDE doesn't know about the changes of typings, you will see the `onEvent` and `captureEvent`
    with correct typings now.
 4. If you want to remove the mod, don't forget to replace all `captureEvent` back to `onEvent`.
+
+## 4. Beaning
+
+Bean conversions are added now, however, to make generated typing information comfort with VSCode's TS language server
+while applying beaning as much as possible, a few rules are added:
+
+1. Beans will not have naming conflicts with methods/fields existed, if a bean has a conflicted name, the bean will not
+   be compiled to declaration.
+2. For beans with only `.getX()` implemented, `readonly` will be automatically added to prevent coincidental writes to
+   the field. For beans with any `.setX()` implemented, the bean will be able to read/write, regardless of it has
+   a `.getX()` or not, as `writeonly` does not exist in TypeScript. This applies to `.isX()` beans too.
+3. If `.isX()` has a `.setX()` or `.getX()` part with same name, the latter will override `.isX()` to prevent loss of
+   information.
+4. Original getter and setter methods are hidden, but still callable, however, calling them will not have typing support
+   as these methods are ignored in method dumping.
