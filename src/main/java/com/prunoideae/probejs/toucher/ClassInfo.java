@@ -1,5 +1,8 @@
 package com.prunoideae.probejs.toucher;
 
+import dev.latvian.mods.rhino.util.HideFromJS;
+import dev.latvian.mods.rhino.util.RemapForJS;
+
 import java.lang.reflect.*;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -76,6 +79,9 @@ public final class ClassInfo {
         }
 
         public String getName() {
+            if (method.getAnnotation(RemapForJS.class) != null) {
+                return method.getAnnotation(RemapForJS.class).value();
+            }
             return this.method.getName();
         }
 
@@ -183,11 +189,11 @@ public final class ClassInfo {
     public List<MethodInfo> getMethods(boolean allowSuper) {
         Set<Method> superMethod = new HashSet<>();
         this.getSuperClass().forEach(cls -> superMethod.addAll(List.of(cls.getMethods())));
-        return Arrays.stream(this.clazz.getMethods()).filter(method -> allowSuper || !superMethod.contains(method)).map(MethodInfo::new).collect(Collectors.toList());
+        return Arrays.stream(this.clazz.getMethods()).filter(field -> field.getAnnotation(HideFromJS.class) == null).filter(method -> allowSuper || !superMethod.contains(method)).map(MethodInfo::new).collect(Collectors.toList());
     }
 
     public List<ConstructorInfo> getConstructors() {
-        return Arrays.stream(this.clazz.getConstructors()).map(ConstructorInfo::new).collect(Collectors.toList());
+        return Arrays.stream(this.clazz.getConstructors()).filter(field -> field.getAnnotation(HideFromJS.class) == null).map(ConstructorInfo::new).collect(Collectors.toList());
     }
 
     public List<FieldInfo> getFields() {
@@ -197,7 +203,7 @@ public final class ClassInfo {
     public List<FieldInfo> getFields(boolean allowSuper) {
         Set<Field> superField = new HashSet<>();
         this.getSuperClass().forEach(cls -> superField.addAll(List.of(cls.getFields())));
-        return Arrays.stream(this.clazz.getFields()).filter(field -> allowSuper || !superField.contains(field)).map(FieldInfo::new).collect(Collectors.toList());
+        return Arrays.stream(this.clazz.getFields()).filter(field -> field.getAnnotation(HideFromJS.class) == null).filter(field -> allowSuper || !superField.contains(field)).map(FieldInfo::new).collect(Collectors.toList());
     }
 
     public List<Class<?>> getSuperClass() {
