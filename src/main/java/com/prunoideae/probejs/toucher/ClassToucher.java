@@ -2,10 +2,8 @@ package com.prunoideae.probejs.toucher;
 
 import com.google.common.primitives.Primitives;
 
-import javax.lang.model.SourceVersion;
 import java.lang.reflect.*;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class ClassToucher {
@@ -14,10 +12,6 @@ public class ClassToucher {
     private boolean dumpMethods;
     private boolean dumpFields;
     private boolean dumpConstructors;
-
-    public static boolean isClassName(String name) {
-        return name.contains(".") && SourceVersion.isName(name) && !SourceVersion.isKeyword(name);
-    }
 
     private static Class<?> getClassOrComponent(Class<?> clazz) {
         if (clazz == null)

@@ -1,12 +1,14 @@
 package com.prunoideae.probejs.typings;
 
 import com.google.common.primitives.Primitives;
+import com.google.gson.Gson;
 import com.mojang.datafixers.util.Pair;
 import com.prunoideae.probejs.ProbeJS;
 import com.prunoideae.probejs.plugin.WrappedEventHandler;
 import com.prunoideae.probejs.toucher.ClassInfo;
 import com.prunoideae.probejs.toucher.ClassToucher;
 import dev.latvian.mods.kubejs.KubeJSPaths;
+import dev.latvian.mods.kubejs.event.EventJS;
 import dev.latvian.mods.kubejs.recipe.RecipeTypeJS;
 import dev.latvian.mods.kubejs.recipe.RegisterRecipeHandlersEvent;
 import dev.latvian.mods.kubejs.server.ServerScriptManager;
@@ -36,12 +38,16 @@ public class ProbeCompiler {
         }
     }
 
-    public static Set<Class<?>> compileGlobal(Path outFile, Map<ResourceLocation, RecipeTypeJS> typeMap, DummyBindingEvent bindingEvent) {
+    public static Set<Class<?>> compileGlobal(Path outFile, Map<ResourceLocation, RecipeTypeJS> typeMap, DummyBindingEvent bindingEvent, Set<Class<?>> cachedClasses) {
         Set<Class<?>> touchableClasses = new HashSet<>(bindingEvent.getClassDumpMap().values());
+
+
         bindingEvent.getClassDumpMap().forEach((k, v) -> {
             TSGlobalClassFormatter.resolvedClassName.put(v.getName(), k);
             touchableClasses.add(v);
         });
+
+        touchableClasses.addAll(cachedClasses);
         touchableClasses.addAll(typeMap.values().stream().map(recipeTypeJS -> recipeTypeJS.factory.get().getClass()).collect(Collectors.toList()));
         touchableClasses.addAll(bindingEvent.getConstantDumpMap().values().stream().map(Object::getClass).collect(Collectors.toList()));
         touchableClasses.addAll(WrappedEventHandler.capturedEvents.values());
@@ -88,9 +94,7 @@ public class ProbeCompiler {
             });
 
             List<TSGlobalClassFormatter.ClassFormatter> dummyRecipeClasses = new ArrayList<>();
-            recipeMethodClassPlaceholder.forEach((k, v) -> {
-                dummyRecipeClasses.add(new TSDummyClassFormatter.DummyMethodClassFormatter(k, v));
-            });
+            recipeMethodClassPlaceholder.forEach((k, v) -> dummyRecipeClasses.add(new TSDummyClassFormatter.DummyMethodClassFormatter(k, v)));
             namespacedClasses.put("stub.probejs.recipes", dummyRecipeClasses);
             namespacedClasses.put("stub.probejs", List.of(new TSDummyClassFormatter.DummyFieldClassFormatter("RecipeHolder", recipeHolderFields.stream().toList())));
 
@@ -112,10 +116,11 @@ public class ProbeCompiler {
         return globalClasses;
     }
 
-    public static void compileEvent(Path outFile) {
+    public static void compileEvent(Path outFile, Map<String, Class<? extends EventJS>> cachedEvents) {
         ProbeJS.LOGGER.info("Compiling captured events...");
         try (BufferedWriter writer = Files.newBufferedWriter(outFile)) {
             writer.write("/// <reference path=\"./globals.d.ts\" />\n");
+            WrappedEventHandler.capturedEvents.putAll(cachedEvents);
             WrappedEventHandler.capturedEvents.forEach(
                     (capture, event) -> {
                         try {
@@ -139,9 +144,11 @@ public class ProbeCompiler {
                     (name, value) -> {
                         try {
                             if (TSGlobalClassFormatter.staticValueTransformer.containsKey(value.getClass()))
-                                writer.write("declare const %s: %s;\n".formatted(name, TSGlobalClassFormatter.staticValueTransformer.get(value.getClass()).apply(value)));
-                            else
-                                writer.write("declare const %s: %s;\n".formatted(name, TSGlobalClassFormatter.resolvedClassName.get(value.getClass().getName())));
+                                if (TSGlobalClassFormatter.staticValueTransformer.get(value.getClass()).apply(value) != null) {
+                                    writer.write("declare const %s: %s;\n".formatted(name, TSGlobalClassFormatter.staticValueTransformer.get(value.getClass()).apply(value)));
+                                    return;
+                                }
+                            writer.write("declare const %s: %s;\n".formatted(name, TSGlobalClassFormatter.resolvedClassName.get(value.getClass().getName())));
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -161,7 +168,7 @@ public class ProbeCompiler {
                     .filter(clazz -> ServerScriptManager.instance.scriptManager.isClassAllowed(clazz.getName()))
                     .forEach(clazz -> {
                         try {
-                            writer.write("declare function java(name: \"%s\"): %s;\n".formatted(clazz.getName(), TSGlobalClassFormatter.resolvedClassName.get(clazz.getName())));
+                            writer.write("declare function java(name: \"%s\"): typeof %s;\n".formatted(clazz.getName(), TSGlobalClassFormatter.resolvedClassName.get(clazz.getName())));
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -207,11 +214,37 @@ public class ProbeCompiler {
         KubeJSPlugins.forEachPlugin(plugin -> plugin.addRecipes(recipeEvent));
         KubeJSPlugins.forEachPlugin(plugin -> plugin.addBindings(bindingEvent));
 
-        Set<Class<?>> touchedClasses = compileGlobal(typingDir.resolve("globals.d.ts"), typeMap, bindingEvent);
-        compileEvent(typingDir.resolve("events.d.ts"));
+        Map<String, Class<? extends EventJS>> cachedEvents = new HashMap<>();
+        Path cachedEventPath = KubeJSPaths.EXPORTED.resolve("cachedEvents.json");
+        if (Files.exists(cachedEventPath)) {
+            Map<?, ?> cachedMap = new Gson().fromJson(Files.newBufferedReader(cachedEventPath), Map.class);
+            cachedMap.forEach((k, v) -> {
+                if (k instanceof String && v instanceof String) {
+                    try {
+                        Class<?> clazz = Class.forName((String) v);
+                        if (EventJS.class.isAssignableFrom(clazz))
+                            cachedEvents.put((String) k, (Class<? extends EventJS>) clazz);
+                    } catch (ClassNotFoundException e) {
+                        ProbeJS.LOGGER.warn("Class %s was in the cache, but disappeared in packages now.".formatted(v));
+                    }
+                }
+            });
+        }
+
+        Set<Class<?>> cachedClasses = new HashSet<>(cachedEvents.values());
+        Set<Class<?>> touchedClasses = compileGlobal(typingDir.resolve("globals.d.ts"), typeMap, bindingEvent, cachedClasses);
+        compileEvent(typingDir.resolve("events.d.ts"), cachedEvents);
         compileConstants(typingDir.resolve("constants.d.ts"), bindingEvent);
         compileJava(typingDir.resolve("java.d.ts"), touchedClasses);
         compileIndex(typingDir.resolve("index.d.ts"));
+        try (BufferedWriter writer = Files.newBufferedWriter(cachedEventPath)) {
+            Map<String, String> eventsCache = new HashMap<>();
+            WrappedEventHandler.capturedEvents.forEach((k, v) -> eventsCache.put(k, v.getName()));
+            new Gson().toJson(eventsCache, writer);
+            writer.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         if (Files.notExists(KubeJSPaths.DIRECTORY.resolve("jsconfig.json")))
             compileJSConfig(KubeJSPaths.DIRECTORY.resolve("jsconfig.json"));
         ProbeJS.LOGGER.info("All done!");

@@ -22,7 +22,7 @@ public class TSDummyClassFormatter {
         @Override
         public String format() {
             List<String> innerLines = new ArrayList<>();
-            innerLines.add("%sclass %s {".formatted(" ".repeat(this.indentation), this.name));
+            innerLines.add(" ".repeat(this.indentation) + "class %s {".formatted(this.name));
             pairs.forEach(pair -> innerLines.add("%s%s(...args: object): %s".formatted(" ".repeat(this.indentation + this.stepIndentation), pair.getFirst(), pair.getSecond().format())));
             innerLines.add("}\n");
             return String.join("\n", innerLines);
@@ -42,7 +42,7 @@ public class TSDummyClassFormatter {
         @Override
         public String format() {
             List<String> innerLines = new ArrayList<>();
-            innerLines.add("%sclass %s {".formatted(" ".repeat(this.indentation), this.name));
+            innerLines.add(" ".repeat(this.indentation) + "class %s {".formatted(this.name));
             pairs.forEach(pair -> innerLines.add("%s%s: %s".formatted(" ".repeat(this.indentation + this.stepIndentation), pair.getFirst(), pair.getSecond())));
             innerLines.add("}\n");
             return String.join("\n", innerLines);

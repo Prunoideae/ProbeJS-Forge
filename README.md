@@ -2,8 +2,6 @@
 
 A data dumper and typing generator for the KubeJS functions, constants and classes.
 
-A recent migration to pure java makes the mod can function without any extra dependencies, enjoy the scripting!
-
 Great thanks to @DAmNRelentless, @LatvianModder and @yesterday17 for invaluable suggestions during the development!
 
 ## 1. Showcase
@@ -35,6 +33,9 @@ Auto-completion, type-hinting for most of the functions and classes:
 3. Reload your IDE if your IDE doesn't know about the changes of typings, you will see the `onEvent` and `captureEvent`
    with correct typings now.
 4. If you want to remove the mod, don't forget to replace all `captureEvent` back to `onEvent`.
+5. v1.4 allows dumped events to be persisted between dumps, no matter actually they're fired or not in current dump, if
+   an event is missing (mostly from the removal of mods), cached events will be automatically removed too. If you want
+   to clear the cache manually, use `/probejs clear_cache`.
 
 ## 4. Beaning
 

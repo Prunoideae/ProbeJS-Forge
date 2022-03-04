@@ -3,7 +3,6 @@ package com.prunoideae.probejs.typings;
 import dev.latvian.mods.kubejs.script.BindingsEvent;
 import dev.latvian.mods.kubejs.script.ScriptManager;
 import dev.latvian.mods.rhino.BaseFunction;
-import dev.latvian.mods.rhino.util.DynamicFunction;
 
 import java.util.HashMap;
 

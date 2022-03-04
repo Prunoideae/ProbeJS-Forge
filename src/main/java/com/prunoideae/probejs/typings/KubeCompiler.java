@@ -46,13 +46,13 @@ public class KubeCompiler {
                         byModMembers.put(rl[0], new ArrayList<>());
                     byModMembers.get(rl[0]).add(rl[1]);
                 });
-                byModMembers.forEach((mod, mems) -> {
-                    JsonObject modMembers = new JsonObject();
+                byModMembers.forEach((mod, modMembers) -> {
+                    JsonObject modMembersJson = new JsonObject();
                     JsonArray prefixes = new JsonArray();
                     prefixes.add("@%s.%s".formatted(mod, type));
-                    modMembers.add("prefix", prefixes);
-                    modMembers.addProperty("body", "\"%s:${1|%s|}\"".formatted(mod, String.join(",", mems)));
-                    resultJson.add("%s_%s".formatted(type, mod), modMembers);
+                    modMembersJson.add("prefix", prefixes);
+                    modMembersJson.addProperty("body", "\"%s:${1|%s|}\"".formatted(mod, String.join(",", modMembers)));
+                    resultJson.add("%s_%s".formatted(type, mod), modMembersJson);
                 });
             }
 
@@ -66,13 +66,13 @@ public class KubeCompiler {
                         byModMembers.put(rl[0], new ArrayList<>());
                     byModMembers.get(rl[0]).add(rl[1]);
                 });
-                byModMembers.forEach((mod, mems) -> {
-                    JsonObject modMembers = new JsonObject();
+                byModMembers.forEach((mod, modMembers) -> {
+                    JsonObject modMembersJson = new JsonObject();
                     JsonArray prefixes = new JsonArray();
                     prefixes.add("@%s.tags.%s".formatted(mod, type));
-                    modMembers.add("prefix", prefixes);
-                    modMembers.addProperty("body", "\"#%s:${1|%s|}\"".formatted(mod, String.join(",", mems)));
-                    resultJson.add("%s_tag_%s".formatted(type, mod), modMembers);
+                    modMembersJson.add("prefix", prefixes);
+                    modMembersJson.addProperty("body", "\"#%s:${1|%s|}\"".formatted(mod, String.join(",", modMembers)));
+                    resultJson.add("%s_tag_%s".formatted(type, mod), modMembersJson);
                 });
             }
 

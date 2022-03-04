@@ -55,7 +55,11 @@ public class TSGlobalClassFormatter {
                 type = pair.getFirst();
             }
         }
-        return resolvedClassName.get(type.getTypeName()) + "[]".repeat(depth);
+        String[] clzPath = type.getTypeName().split("\\.");
+        String name = clzPath[clzPath.length - 1];
+        if (name.contains("/"))
+            name = name.split("/")[0];
+        return resolvedClassName.getOrDefault(type.getTypeName(), "Unknown." + name) + "[]".repeat(depth);
     }
 
     public static class TypeFormatter implements ITSFormatter {
@@ -68,12 +72,6 @@ public class TSGlobalClassFormatter {
         @Override
         public String format() {
             Class<?> clazz = this.typeInfo.getTypeClass();
-            int arrayDepth = -1;
-            if (clazz != null && clazz.isArray()) {
-                Pair<Class<?>, Integer> pair = getClassOrComponent(clazz);
-                clazz = pair.getFirst();
-                arrayDepth = pair.getSecond();
-            }
             String resolvedType = specialTypeFormatter.containsKey(clazz)
                     ? specialTypeFormatter.get(clazz).apply(this.typeInfo)
                     : serializeType(this.typeInfo.getType());
@@ -82,10 +80,7 @@ public class TSGlobalClassFormatter {
                 if (type.getTypeParameters().length != 0)
                     resolvedType += "<%s>".formatted(String.join(",", Collections.nCopies(type.getTypeParameters().length, "unknown")));
             }
-            if (arrayDepth != -1)
-                resolvedType += "[]".repeat(arrayDepth);
             return resolvedType;
-
         }
     }
 
@@ -127,19 +122,27 @@ public class TSGlobalClassFormatter {
     public static class FieldFormatter implements ITSFormatter {
         private final ClassInfo.FieldInfo fieldInfo;
 
+        public static String formatValue(Object obj) {
+            if (obj == null)
+                return "any";
+            if (staticValueTransformer.containsKey(obj.getClass()))
+                if (staticValueTransformer.get(obj.getClass()).apply(obj) != null)
+                    return staticValueTransformer.get(obj.getClass()).apply(obj);
+            return null;
+        }
+
         public FieldFormatter(ClassInfo.FieldInfo fieldInfo) {
             this.fieldInfo = fieldInfo;
         }
 
         @Override
         public String format() {
-            String resolvedAnnotation;
-            if (this.fieldInfo.isStatic()
-                    && this.fieldInfo.getStaticValue() != null
-                    && staticValueTransformer.containsKey(this.fieldInfo.getStaticValue().getClass())) {
+            String resolvedAnnotation = null;
+            if (this.fieldInfo.isStatic() && this.fieldInfo.getStaticValue() != null) {
                 Object value = this.fieldInfo.getStaticValue();
-                resolvedAnnotation = staticValueTransformer.get(value.getClass()).apply(value);
-            } else {
+                resolvedAnnotation = formatValue(value);
+            }
+            if (resolvedAnnotation == null) {
                 resolvedAnnotation = new TypeFormatter(this.fieldInfo.getTypeInfo()).format();
             }
 

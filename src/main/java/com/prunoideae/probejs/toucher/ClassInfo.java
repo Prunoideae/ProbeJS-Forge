@@ -119,10 +119,6 @@ public final class ClassInfo {
             this.constructor = constructor;
         }
 
-        public String getName() {
-            return this.constructor.getName();
-        }
-
         public List<ParamInfo> getParamsInfo() {
             return Arrays.stream(this.constructor.getParameters()).map(ParamInfo::new).collect(Collectors.toList());
         }

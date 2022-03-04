@@ -1,13 +1,15 @@
 package com.prunoideae.probejs.typings;
 
+import com.google.common.primitives.Primitives;
 import com.google.gson.Gson;
 import com.prunoideae.probejs.toucher.ClassInfo;
-import com.prunoideae.probejs.toucher.ClassToucher;
 import dev.latvian.mods.kubejs.recipe.RecipeEventJS;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
 
 import java.lang.reflect.Type;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -54,6 +56,27 @@ public class SpecialFormatters {
         };
     }
 
+    private static String formatMapKV(Object obj) {
+        //Only Map<string, Object> is allowed
+        //Others are discarded, if there are others
+        Map<?, ?> map = (Map<?, ?>) obj;
+        if (map.keySet().stream().anyMatch(o -> o instanceof String)) {
+            return "{%s}".formatted(map.entrySet()
+                    .stream()
+                    .filter(entry -> entry.getKey() != null)
+                    .filter(entry -> entry.getKey() instanceof String)
+                    .map(entry -> {
+                        if (TSGlobalClassFormatter.FieldFormatter.formatValue(entry.getValue()) != null) {
+                            return "%s: %s".formatted(new Gson().toJson(entry.getKey()), TSGlobalClassFormatter.FieldFormatter.formatValue(entry.getValue()));
+                        }
+                        return "%s: %s".formatted(new Gson().toJson(entry.getKey()), new TSGlobalClassFormatter.TypeFormatter(new ClassInfo.TypeInfo(entry.getValue().getClass(), entry.getValue().getClass())).format());
+                    })
+                    .collect(Collectors.joining(", ")));
+        } else {
+            return null;
+        }
+    }
+
     private static void putStaticValueTransformer(Function<Object, String> transformer, Class<?>... types) {
         for (Class<?> type : types)
             TSGlobalClassFormatter.staticValueTransformer.put(type, transformer);
@@ -91,6 +114,8 @@ public class SpecialFormatters {
                 Long.TYPE, Long.class,
                 Short.TYPE, Short.class,
                 Void.TYPE, Void.class);
+        putStaticValueTransformer(o -> new Gson().toJson(((ResourceLocation) o).toString()), ResourceLocation.class);
+        putStaticValueTransformer(SpecialFormatters::formatMapKV, HashMap.class, Map.class);
         putStaticValueTransformer(o -> new Gson().toJson(o), String.class, Character.TYPE, Character.class);
     }
 }
