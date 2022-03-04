@@ -120,8 +120,8 @@ public class ProbeCompiler {
         ProbeJS.LOGGER.info("Compiling captured events...");
         try (BufferedWriter writer = Files.newBufferedWriter(outFile)) {
             writer.write("/// <reference path=\"./globals.d.ts\" />\n");
-            WrappedEventHandler.capturedEvents.putAll(cachedEvents);
-            WrappedEventHandler.capturedEvents.forEach(
+            cachedEvents.putAll(WrappedEventHandler.capturedEvents);
+            cachedEvents.forEach(
                     (capture, event) -> {
                         try {
                             writer.write("declare function onEvent(name: \"%s\", handler: (event: %s) => void);\n".formatted(capture, TSGlobalClassFormatter.resolvedClassName.get(event.getName())));
@@ -143,11 +143,11 @@ public class ProbeCompiler {
             bindingEvent.getConstantDumpMap().forEach(
                     (name, value) -> {
                         try {
-                            if (TSGlobalClassFormatter.staticValueTransformer.containsKey(value.getClass()))
-                                if (TSGlobalClassFormatter.staticValueTransformer.get(value.getClass()).apply(value) != null) {
-                                    writer.write("declare const %s: %s;\n".formatted(name, TSGlobalClassFormatter.staticValueTransformer.get(value.getClass()).apply(value)));
-                                    return;
-                                }
+
+                            if (TSGlobalClassFormatter.transformValue(value) != null) {
+                                writer.write("declare const %s: %s;\n".formatted(name, TSGlobalClassFormatter.transformValue(value)));
+                                return;
+                            }
                             writer.write("declare const %s: %s;\n".formatted(name, TSGlobalClassFormatter.resolvedClassName.get(value.getClass().getName())));
                         } catch (IOException e) {
                             e.printStackTrace();
@@ -239,7 +239,7 @@ public class ProbeCompiler {
         compileIndex(typingDir.resolve("index.d.ts"));
         try (BufferedWriter writer = Files.newBufferedWriter(cachedEventPath)) {
             Map<String, String> eventsCache = new HashMap<>();
-            WrappedEventHandler.capturedEvents.forEach((k, v) -> eventsCache.put(k, v.getName()));
+            cachedEvents.forEach((k, v) -> eventsCache.put(k, v.getName()));
             new Gson().toJson(eventsCache, writer);
             writer.flush();
         } catch (IOException e) {

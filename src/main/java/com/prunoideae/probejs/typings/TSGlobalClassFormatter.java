@@ -1,6 +1,7 @@
 package com.prunoideae.probejs.typings;
 
 import com.mojang.datafixers.util.Pair;
+import com.prunoideae.probejs.ProbeJS;
 import com.prunoideae.probejs.toucher.ClassInfo;
 import dev.latvian.mods.kubejs.recipe.RecipeEventJS;
 
@@ -15,6 +16,16 @@ public class TSGlobalClassFormatter {
     public static HashMap<Class<?>, Class<? extends ClassFormatter>> specialClassFormatter = new HashMap<>();
     public static HashMap<Class<?>, Function<Object, String>> staticValueTransformer = new HashMap<>();
     public static HashMap<String, String> resolvedClassName = new HashMap<>();
+
+    public static String transformValue(Object object) {
+        if (staticValueTransformer.containsKey(object.getClass()))
+            return staticValueTransformer.get(object.getClass()).apply(object);
+        for (Map.Entry<Class<?>, Function<Object, String>> entry : staticValueTransformer.entrySet()) {
+            if (entry.getKey().isAssignableFrom(object.getClass()))
+                return entry.getValue().apply(object);
+        }
+        return null;
+    }
 
     private static String getCamelCase(String text) {
         return Character.toLowerCase(text.charAt(0)) + text.substring(1);
@@ -125,10 +136,7 @@ public class TSGlobalClassFormatter {
         public static String formatValue(Object obj) {
             if (obj == null)
                 return "any";
-            if (staticValueTransformer.containsKey(obj.getClass()))
-                if (staticValueTransformer.get(obj.getClass()).apply(obj) != null)
-                    return staticValueTransformer.get(obj.getClass()).apply(obj);
-            return null;
+            return transformValue(obj);
         }
 
         public FieldFormatter(ClassInfo.FieldInfo fieldInfo) {
@@ -144,6 +152,8 @@ public class TSGlobalClassFormatter {
             }
             if (resolvedAnnotation == null) {
                 resolvedAnnotation = new TypeFormatter(this.fieldInfo.getTypeInfo()).format();
+            } else {
+                resolvedAnnotation += " & " + new TypeFormatter(this.fieldInfo.getTypeInfo()).format();
             }
 
             String formatted = "%s: %s;".formatted(this.fieldInfo.getName(), resolvedAnnotation);
@@ -234,7 +244,7 @@ public class TSGlobalClassFormatter {
             //Add class getters/setters to beaned
             classInfo.getMethods()
                     .stream()
-                    .filter(methodInfo -> !methodInfo.getName().equals("get"))
+                    .filter(methodInfo -> !(methodInfo.getName().equals("get")))
                     .filter(methodInfo -> methodInfo.getName().startsWith("get"))
                     .filter(methodInfo -> !Character.isDigit(methodInfo.getName().substring(3).charAt(0)))
                     .filter(methodInfo -> !existedNames.contains(getCamelCase(methodInfo.getName().substring(3))))
@@ -308,6 +318,15 @@ public class TSGlobalClassFormatter {
                 if (type instanceof Class<?> clazz) {
                     if (clazz.getTypeParameters().length != 0)
                         resolved += "<%s>".formatted(String.join(",", Collections.nCopies(clazz.getTypeParameters().length, "any")));
+                }
+                if (v.isStatic()) {
+                    try {
+                        String value = transformValue(v.getMethod().invoke(null));
+                        if (value != null)
+                            resolved = value + " & " + resolved;
+                    } catch (Exception e) {
+                        ProbeJS.LOGGER.warn("Unable to get static value of bean %s, falling back to type.".formatted(k));
+                    }
                 }
                 String formatted = "%s: %s;".formatted(k, resolved);
                 if (v.isStatic())

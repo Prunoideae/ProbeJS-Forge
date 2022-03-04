@@ -87,6 +87,10 @@ public final class ClassInfo {
             return Arrays.stream(this.method.getParameters()).map(ParamInfo::new).collect(Collectors.toList());
         }
 
+        public Method getMethod() {
+            return method;
+        }
+
         public TypeInfo getReturnTypeInfo() {
             return new TypeInfo(this.method.getGenericReturnType(), this.method.getReturnType());
         }
@@ -173,9 +177,13 @@ public final class ClassInfo {
     }
 
     public List<MethodInfo> getMethods() {
+        return getMethods(false);
+    }
+
+    public List<MethodInfo> getMethods(boolean allowSuper) {
         Set<Method> superMethod = new HashSet<>();
         this.getSuperClass().forEach(cls -> superMethod.addAll(List.of(cls.getMethods())));
-        return Arrays.stream(this.clazz.getMethods()).filter(method -> !superMethod.contains(method)).map(MethodInfo::new).collect(Collectors.toList());
+        return Arrays.stream(this.clazz.getMethods()).filter(method -> allowSuper || !superMethod.contains(method)).map(MethodInfo::new).collect(Collectors.toList());
     }
 
     public List<ConstructorInfo> getConstructors() {
@@ -183,7 +191,13 @@ public final class ClassInfo {
     }
 
     public List<FieldInfo> getFields() {
-        return Arrays.stream(this.clazz.getFields()).map(FieldInfo::new).collect(Collectors.toList());
+        return getFields(false);
+    }
+
+    public List<FieldInfo> getFields(boolean allowSuper) {
+        Set<Field> superField = new HashSet<>();
+        this.getSuperClass().forEach(cls -> superField.addAll(List.of(cls.getFields())));
+        return Arrays.stream(this.clazz.getFields()).filter(field -> allowSuper || !superField.contains(field)).map(FieldInfo::new).collect(Collectors.toList());
     }
 
     public List<Class<?>> getSuperClass() {

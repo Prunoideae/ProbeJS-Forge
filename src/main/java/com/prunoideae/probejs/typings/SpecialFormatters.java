@@ -1,6 +1,5 @@
 package com.prunoideae.probejs.typings;
 
-import com.google.common.primitives.Primitives;
 import com.google.gson.Gson;
 import com.prunoideae.probejs.toucher.ClassInfo;
 import dev.latvian.mods.kubejs.recipe.RecipeEventJS;
@@ -60,11 +59,9 @@ public class SpecialFormatters {
         //Only Map<string, Object> is allowed
         //Others are discarded, if there are others
         Map<?, ?> map = (Map<?, ?>) obj;
-        if (map.keySet().stream().anyMatch(o -> o instanceof String)) {
+        if (map.keySet().stream().allMatch(o -> o instanceof String || o instanceof Number)) {
             return "{%s}".formatted(map.entrySet()
                     .stream()
-                    .filter(entry -> entry.getKey() != null)
-                    .filter(entry -> entry.getKey() instanceof String)
                     .map(entry -> {
                         if (TSGlobalClassFormatter.FieldFormatter.formatValue(entry.getValue()) != null) {
                             return "%s: %s".formatted(new Gson().toJson(entry.getKey()), TSGlobalClassFormatter.FieldFormatter.formatValue(entry.getValue()));
@@ -84,7 +81,6 @@ public class SpecialFormatters {
 
     public static void init() {
         TSGlobalClassFormatter.specialClassFormatter.put(RecipeEventJS.class, TSDummyClassFormatter.RecipeEventJSFormatter.class);
-
         putTypeFormatter(BiConsumer.class, generateTypedFunction(2, "void"));
         putTypeFormatter(BiFunction.class, generateParamFunction(3));
         putTypeFormatter(BiPredicate.class, generateTypedFunction(2, "boolean"));
