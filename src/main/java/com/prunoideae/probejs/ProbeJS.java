@@ -1,6 +1,6 @@
 package com.prunoideae.probejs;
 
-import dev.architectury.event.events.common.CommandRegistrationEvent;
+import me.shedaniel.architectury.event.events.CommandRegistrationEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

@@ -6,7 +6,7 @@ plugins {
 
 apply from: 'https://files.latmod.com/public/markdown-git-changelog.gradle'
 
-sourceCompatibility = targetCompatibility = JavaVersion.VERSION_17
+sourceCompatibility = targetCompatibility = JavaVersion.VERSION_1_8
 
 def ENV = System.getenv()
 version = "${mod_version}-build.22"
@@ -36,7 +36,7 @@ repositories {
     maven {
         url "https://maven.architectury.dev/"
         content {
-            includeGroup "dev.architectury"
+            includeGroup "me.shedaniel"
         }
     }
 
@@ -65,8 +65,12 @@ processResources {
     }
 }
 
-compileJava {
-    options.encoding = "UTF-8"
+tasks.withType(JavaCompile).configureEach {
+    it.options.encoding = "UTF-8"
+    def targetVersion = 8
+    if (JavaVersion.current().isJava9Compatible()) {
+        it.options.release = targetVersion
+    }
 }
 
 java {

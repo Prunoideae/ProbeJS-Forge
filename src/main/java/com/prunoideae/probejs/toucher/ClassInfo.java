@@ -1,5 +1,7 @@
 package com.prunoideae.probejs.toucher;
 
+import com.google.common.collect.Lists;
+
 import java.lang.reflect.*;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -182,7 +184,7 @@ public final class ClassInfo {
 
     public List<MethodInfo> getMethods(boolean allowSuper) {
         Set<Method> superMethod = new HashSet<>();
-        this.getSuperClass().forEach(cls -> superMethod.addAll(List.of(cls.getMethods())));
+        this.getSuperClass().forEach(cls -> superMethod.addAll(Arrays.stream(cls.getMethods()).collect(Collectors.toList())));
         return Arrays.stream(this.clazz.getMethods()).filter(method -> allowSuper || !superMethod.contains(method)).map(MethodInfo::new).collect(Collectors.toList());
     }
 
@@ -196,7 +198,7 @@ public final class ClassInfo {
 
     public List<FieldInfo> getFields(boolean allowSuper) {
         Set<Field> superField = new HashSet<>();
-        this.getSuperClass().forEach(cls -> superField.addAll(List.of(cls.getFields())));
+        this.getSuperClass().forEach(cls -> superField.addAll(Arrays.stream(cls.getFields()).collect(Collectors.toList())));
         return Arrays.stream(this.clazz.getFields()).filter(field -> allowSuper || !superField.contains(field)).map(FieldInfo::new).collect(Collectors.toList());
     }
 
@@ -204,7 +206,7 @@ public final class ClassInfo {
         List<Class<?>> classes = new ArrayList<>();
         if (!this.clazz.isInterface())
             classes.add(clazz.getSuperclass());
-        classes.addAll(List.of(clazz.getInterfaces()));
+        classes.addAll(Arrays.stream(clazz.getInterfaces()).collect(Collectors.toList()));
         classes.removeIf(Objects::isNull);
         return classes;
     }
@@ -213,7 +215,7 @@ public final class ClassInfo {
         List<Type> types = new ArrayList<>();
         if (!this.clazz.isInterface() && this.clazz.getSuperclass() != Object.class)
             types.add(this.clazz.getGenericSuperclass());
-        types.addAll(List.of(this.clazz.getGenericInterfaces()));
+        types.addAll(Arrays.stream(this.clazz.getGenericInterfaces()).collect(Collectors.toList()));
         types.removeIf(Objects::isNull);
         return types;
     }

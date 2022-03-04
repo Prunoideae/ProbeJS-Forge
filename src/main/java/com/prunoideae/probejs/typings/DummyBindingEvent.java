@@ -1,7 +1,7 @@
 package com.prunoideae.probejs.typings;
 
-import dev.latvian.mods.kubejs.script.BindingsEvent;
-import dev.latvian.mods.kubejs.script.ScriptManager;
+import dev.latvian.kubejs.script.BindingsEvent;
+import dev.latvian.kubejs.script.ScriptManager;
 import dev.latvian.mods.rhino.BaseFunction;
 
 import java.util.HashMap;

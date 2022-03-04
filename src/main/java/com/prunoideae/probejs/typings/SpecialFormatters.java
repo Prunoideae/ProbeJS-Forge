@@ -2,7 +2,7 @@ package com.prunoideae.probejs.typings;
 
 import com.google.gson.Gson;
 import com.prunoideae.probejs.toucher.ClassInfo;
-import dev.latvian.mods.kubejs.recipe.RecipeEventJS;
+import dev.latvian.kubejs.recipe.RecipeEventJS;
 import net.minecraft.resources.ResourceLocation;
 
 import java.lang.reflect.Type;
@@ -31,12 +31,10 @@ public class SpecialFormatters {
             if (s.size() != paramCount)
                 return TSGlobalClassFormatter.resolvedClassName.get(typeInfo.getTypeClass().getName());
             List<String> formatted = s.stream().map(TSGlobalClassFormatter::serializeType).collect(Collectors.toList());
-            return "(%s) => %s".formatted(
-                    IntStream.range(0, formatted.size())
-                            .mapToObj(index -> "arg%d: %s".formatted(index, formatted.get(index)))
+            return String.format("(%s) => %s", IntStream.range(0, formatted.size())
+                            .mapToObj(index -> String.format("arg%d: %s", index, formatted.get(index)))
                             .collect(Collectors.joining(", ")),
-                    returnType
-            );
+                    returnType);
         };
     }
 
@@ -46,12 +44,10 @@ public class SpecialFormatters {
             if (s.size() != paramCount)
                 return TSGlobalClassFormatter.resolvedClassName.get(typeInfo.getType().getTypeName());
             List<String> formatted = s.stream().map(TSGlobalClassFormatter::serializeType).collect(Collectors.toList());
-            return "(%s) => %s".formatted(
-                    IntStream.range(0, formatted.size() - 1)
-                            .mapToObj(index -> "arg%d: %s".formatted(index, formatted.get(index)))
+            return String.format("(%s) => %s", IntStream.range(0, formatted.size() - 1)
+                            .mapToObj(index -> String.format("arg%d: %s", index, formatted.get(index)))
                             .collect(Collectors.joining(", ")),
-                    formatted.get(formatted.size() - 1)
-            );
+                    formatted.get(formatted.size() - 1));
         };
     }
 
@@ -60,13 +56,13 @@ public class SpecialFormatters {
         //Others are discarded, if there are others
         Map<?, ?> map = (Map<?, ?>) obj;
         if (map.keySet().stream().allMatch(o -> o instanceof String || o instanceof Number)) {
-            return "{%s}".formatted(map.entrySet()
+            return String.format("{%s}", map.entrySet()
                     .stream()
                     .map(entry -> {
                         if (TSGlobalClassFormatter.FieldFormatter.formatValue(entry.getValue()) != null) {
-                            return "%s: %s".formatted(new Gson().toJson(entry.getKey()), TSGlobalClassFormatter.FieldFormatter.formatValue(entry.getValue()));
+                            return String.format("%s: %s", new Gson().toJson(entry.getKey()), TSGlobalClassFormatter.FieldFormatter.formatValue(entry.getValue()));
                         }
-                        return "%s: %s".formatted(new Gson().toJson(entry.getKey()), new TSGlobalClassFormatter.TypeFormatter(new ClassInfo.TypeInfo(entry.getValue().getClass(), entry.getValue().getClass())).format());
+                        return String.format("%s: %s", new Gson().toJson(entry.getKey()), new TSGlobalClassFormatter.TypeFormatter(new ClassInfo.TypeInfo(entry.getValue().getClass(), entry.getValue().getClass())).format());
                     })
                     .collect(Collectors.joining(", ")));
         } else {
@@ -110,7 +106,7 @@ public class SpecialFormatters {
                 Long.TYPE, Long.class,
                 Short.TYPE, Short.class,
                 Void.TYPE, Void.class);
-        putStaticValueTransformer(o -> new Gson().toJson(((ResourceLocation) o).toString()), ResourceLocation.class);
+        putStaticValueTransformer(o -> new Gson().toJson(o.toString()), ResourceLocation.class);
         putStaticValueTransformer(SpecialFormatters::formatMapKV, HashMap.class, Map.class);
         putStaticValueTransformer(o -> new Gson().toJson(o), String.class, Character.TYPE, Character.class);
     }

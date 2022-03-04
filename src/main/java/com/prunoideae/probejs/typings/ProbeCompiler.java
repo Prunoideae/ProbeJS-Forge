@@ -1,5 +1,6 @@
 package com.prunoideae.probejs.typings;
 
+import com.google.common.collect.Lists;
 import com.google.common.primitives.Primitives;
 import com.google.gson.Gson;
 import com.mojang.datafixers.util.Pair;
@@ -7,12 +8,12 @@ import com.prunoideae.probejs.ProbeJS;
 import com.prunoideae.probejs.plugin.WrappedEventHandler;
 import com.prunoideae.probejs.toucher.ClassInfo;
 import com.prunoideae.probejs.toucher.ClassToucher;
-import dev.latvian.mods.kubejs.KubeJSPaths;
-import dev.latvian.mods.kubejs.event.EventJS;
-import dev.latvian.mods.kubejs.recipe.RecipeTypeJS;
-import dev.latvian.mods.kubejs.recipe.RegisterRecipeHandlersEvent;
-import dev.latvian.mods.kubejs.server.ServerScriptManager;
-import dev.latvian.mods.kubejs.util.KubeJSPlugins;
+import dev.latvian.kubejs.KubeJSPaths;
+import dev.latvian.kubejs.event.EventJS;
+import dev.latvian.kubejs.recipe.RecipeTypeJS;
+import dev.latvian.kubejs.recipe.RegisterRecipeHandlersEvent;
+import dev.latvian.kubejs.server.ServerScriptManager;
+import dev.latvian.kubejs.util.KubeJSPlugins;
 import net.minecraft.resources.ResourceLocation;
 
 import java.io.BufferedWriter;
@@ -67,7 +68,7 @@ public class ProbeCompiler {
                     .filter(clazz -> !Primitives.allWrapperTypes().contains(clazz))
                     .forEach(clazz -> {
                         ClassInfo info = new ClassInfo(clazz);
-                        TSGlobalClassFormatter.ClassFormatter formatter = new TSGlobalClassFormatter.ClassFormatter(info, 0, 4, s -> !Pattern.matches("^[fm]_[\\d_]+$", s));
+                        TSGlobalClassFormatter.ClassFormatter formatter = new TSGlobalClassFormatter.ClassFormatter(info, 0, 4, s -> !Pattern.matches("^func_[\\d_]+_._$$", s) && !Pattern.matches("^field_[\\d_]+_._$", s));
                         if (TSGlobalClassFormatter.resolvedClassName.get(clazz.getName()).contains(".")) {
                             String fullName = TSGlobalClassFormatter.resolvedClassName.get(clazz.getName());
                             String[] paths = fullName.split("\\.");
@@ -77,7 +78,7 @@ public class ProbeCompiler {
                             try {
                                 writer.write("declare " + formatter.format());
                                 if (info.getClazz().isInterface())
-                                    writer.write("declare const %s: %s;\n".formatted(TSGlobalClassFormatter.resolvedClassName.get(clazz.getName()), TSGlobalClassFormatter.resolvedClassName.get(clazz.getName())));
+                                    writer.write(String.format("declare const %s: %s;\n", TSGlobalClassFormatter.resolvedClassName.get(clazz.getName()), TSGlobalClassFormatter.resolvedClassName.get(clazz.getName())));
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
@@ -90,13 +91,13 @@ public class ProbeCompiler {
                 String namespace = k.getNamespace();
                 namespace = namespace.substring(0, 1).toUpperCase(Locale.ROOT) + namespace.substring(1);
                 recipeMethodClassPlaceholder.computeIfAbsent(namespace, s -> new ArrayList<>()).add(new Pair<>(k.getPath(), new TSGlobalClassFormatter.TypeFormatter(new ClassInfo.TypeInfo(v.factory.get().getClass(), v.factory.get().getClass()))));
-                recipeHolderFields.add(new Pair<>(k.getNamespace(), "stub.probejs.recipes.%s".formatted(namespace)));
+                recipeHolderFields.add(new Pair<>(k.getNamespace(), String.format("stub.probejs.recipes.%s", namespace)));
             });
 
             List<TSGlobalClassFormatter.ClassFormatter> dummyRecipeClasses = new ArrayList<>();
             recipeMethodClassPlaceholder.forEach((k, v) -> dummyRecipeClasses.add(new TSDummyClassFormatter.DummyMethodClassFormatter(k, v)));
             namespacedClasses.put("stub.probejs.recipes", dummyRecipeClasses);
-            namespacedClasses.put("stub.probejs", List.of(new TSDummyClassFormatter.DummyFieldClassFormatter("RecipeHolder", recipeHolderFields.stream().toList())));
+            namespacedClasses.put("stub.probejs", Lists.newArrayList(new TSDummyClassFormatter.DummyFieldClassFormatter("RecipeHolder", new ArrayList<>(recipeHolderFields))));
 
             namespacedClasses.forEach((k, v) -> {
 
@@ -124,8 +125,8 @@ public class ProbeCompiler {
             cachedEvents.forEach(
                     (capture, event) -> {
                         try {
-                            writer.write("declare function onEvent(name: \"%s\", handler: (event: %s) => void);\n".formatted(capture, TSGlobalClassFormatter.resolvedClassName.get(event.getName())));
-                            writer.write("declare function captureEvent(name: \"%s\", handler: (event: %s) => void);\n".formatted(capture, TSGlobalClassFormatter.resolvedClassName.get(event.getName())));
+                            writer.write(String.format("declare function onEvent(name: \"%s\", handler: (event: %s) => void);\n", capture, TSGlobalClassFormatter.resolvedClassName.get(event.getName())));
+                            writer.write(String.format("declare function captureEvent(name: \"%s\", handler: (event: %s) => void);\n", capture, TSGlobalClassFormatter.resolvedClassName.get(event.getName())));
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -145,10 +146,10 @@ public class ProbeCompiler {
                         try {
 
                             if (TSGlobalClassFormatter.transformValue(value) != null) {
-                                writer.write("declare const %s: %s;\n".formatted(name, TSGlobalClassFormatter.transformValue(value)));
+                                writer.write(String.format("declare const %s: %s;\n", name, TSGlobalClassFormatter.transformValue(value)));
                                 return;
                             }
-                            writer.write("declare const %s: %s;\n".formatted(name, TSGlobalClassFormatter.resolvedClassName.get(value.getClass().getName())));
+                            writer.write(String.format("declare const %s: %s;\n", name, TSGlobalClassFormatter.resolvedClassName.get(value.getClass().getName())));
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -168,7 +169,7 @@ public class ProbeCompiler {
                     .filter(clazz -> ServerScriptManager.instance.scriptManager.isClassAllowed(clazz.getName()))
                     .forEach(clazz -> {
                         try {
-                            writer.write("declare function java(name: \"%s\"): typeof %s;\n".formatted(clazz.getName(), TSGlobalClassFormatter.resolvedClassName.get(clazz.getName())));
+                            writer.write(String.format("declare function java(name: \"%s\"): typeof %s;\n", clazz.getName(), TSGlobalClassFormatter.resolvedClassName.get(clazz.getName())));
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -191,13 +192,7 @@ public class ProbeCompiler {
 
     public static void compileJSConfig(Path outFile) {
         try (BufferedWriter writer = Files.newBufferedWriter(outFile)) {
-            writer.write("""
-                    {
-                        "compilerOptions": {
-                            "lib": ["ES5", "ES2015"],
-                            "typeRoots": ["kubetypings"]
-                        }
-                    }""");
+            writer.write("{\"compilerOptions\": {\"lib\": [\"ES5\", \"ES2015\"],\"typeRoots\": [\"kubetypings\"]}}");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -225,7 +220,7 @@ public class ProbeCompiler {
                         if (EventJS.class.isAssignableFrom(clazz))
                             cachedEvents.put((String) k, (Class<? extends EventJS>) clazz);
                     } catch (ClassNotFoundException e) {
-                        ProbeJS.LOGGER.warn("Class %s was in the cache, but disappeared in packages now.".formatted(v));
+                        ProbeJS.LOGGER.warn(String.format("Class %s was in the cache, but disappeared in packages now.", v));
                     }
                 }
             });

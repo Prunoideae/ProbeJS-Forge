@@ -3,7 +3,7 @@ package com.prunoideae.probejs.typings;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import dev.latvian.mods.kubejs.KubeJSPaths;
+import dev.latvian.kubejs.KubeJSPaths;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -49,17 +49,17 @@ public class KubeCompiler {
                 byModMembers.forEach((mod, modMembers) -> {
                     JsonObject modMembersJson = new JsonObject();
                     JsonArray prefixes = new JsonArray();
-                    prefixes.add("@%s.%s".formatted(mod, type));
+                    prefixes.add(String.format("@%s.%s", mod, type));
                     modMembersJson.add("prefix", prefixes);
-                    modMembersJson.addProperty("body", "\"%s:${1|%s|}\"".formatted(mod, String.join(",", modMembers)));
-                    resultJson.add("%s_%s".formatted(type, mod), modMembersJson);
+                    modMembersJson.addProperty("body", String.format("\"%s:${1|%s|}\"", mod, String.join(",", modMembers)));
+                    resultJson.add(String.format("%s_%s", type, mod), modMembersJson);
                 });
             }
 
             // Compile tag entries to snippet
             for (Map.Entry<String, Map<String, List<String>>> entry : this.tags.entrySet()) {
                 String type = entry.getKey();
-                List<String> members = entry.getValue().keySet().stream().toList();
+                List<String> members = new ArrayList<>(entry.getValue().keySet());
                 Map<String, List<String>> byModMembers = new HashMap<>();
                 members.stream().map(rl -> rl.split(":")).forEach(rl -> {
                     if (!byModMembers.containsKey(rl[0]))
@@ -69,10 +69,10 @@ public class KubeCompiler {
                 byModMembers.forEach((mod, modMembers) -> {
                     JsonObject modMembersJson = new JsonObject();
                     JsonArray prefixes = new JsonArray();
-                    prefixes.add("@%s.tags.%s".formatted(mod, type));
+                    prefixes.add(String.format("@%s.tags.%s", mod, type));
                     modMembersJson.add("prefix", prefixes);
-                    modMembersJson.addProperty("body", "\"#%s:${1|%s|}\"".formatted(mod, String.join(",", modMembers)));
-                    resultJson.add("%s_tag_%s".formatted(type, mod), modMembersJson);
+                    modMembersJson.addProperty("body", String.format("\"#%s:${1|%s|}\"", mod, String.join(",", modMembers)));
+                    resultJson.add(String.format("%s_tag_%s", type, mod), modMembersJson);
                 });
             }
 
@@ -87,13 +87,13 @@ public class KubeCompiler {
                 members.forEach((resourceLocation, tagMembers) -> {
                     String[] rl = resourceLocation.split(":");
                     rl[1] = rl[1].replace("/", "_");
-                    byMods.computeIfAbsent(rl[0], key -> new ArrayList<>()).add("%s:%s".formatted(rl[1], new Gson().toJson(tagMembers)));
+                    byMods.computeIfAbsent(rl[0], key -> new ArrayList<>()).add(String.format("%s:%s", rl[1], new Gson().toJson(tagMembers)));
                 });
-                List<String> modsString = byMods.entrySet().stream().map(entry -> "%s:{%s}".formatted(entry.getKey(), String.join(",\n", entry.getValue()))).collect(Collectors.toList());
-                types.add("%s:{%s}".formatted(type, String.join(",\n", modsString)));
+                List<String> modsString = byMods.entrySet().stream().map(entry -> String.format("%s:{%s}", entry.getKey(), String.join(",\n", entry.getValue()))).collect(Collectors.toList());
+                types.add(String.format("%s:{%s}", type, String.join(",\n", modsString)));
             });
             writer.write("// priority: 1000\n");
-            writer.write("const tags = {%s}".formatted(String.join(",\n", types)));
+            writer.write(String.format("const tags = {%s}", String.join(",\n", types)));
             writer.flush();
         }
     }

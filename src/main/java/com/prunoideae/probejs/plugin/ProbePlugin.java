@@ -1,9 +1,9 @@
 package com.prunoideae.probejs.plugin;
 
-import dev.latvian.mods.kubejs.KubeJSPlugin;
-import dev.latvian.mods.kubejs.event.IEventHandler;
-import dev.latvian.mods.kubejs.script.BindingsEvent;
-import dev.latvian.mods.kubejs.util.ListJS;
+import dev.latvian.kubejs.KubeJSPlugin;
+import dev.latvian.kubejs.event.IEventHandler;
+import dev.latvian.kubejs.script.BindingsEvent;
+import dev.latvian.kubejs.util.ListJS;
 
 public class ProbePlugin extends KubeJSPlugin {
     @Override

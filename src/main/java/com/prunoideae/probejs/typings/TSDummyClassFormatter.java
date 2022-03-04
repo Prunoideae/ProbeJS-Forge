@@ -4,6 +4,7 @@ import com.mojang.datafixers.util.Pair;
 import com.prunoideae.probejs.toucher.ClassInfo;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -22,8 +23,9 @@ public class TSDummyClassFormatter {
         @Override
         public String format() {
             List<String> innerLines = new ArrayList<>();
-            innerLines.add(" ".repeat(this.indentation) + "class %s {".formatted(this.name));
-            pairs.forEach(pair -> innerLines.add("%s%s(...args: object): %s".formatted(" ".repeat(this.indentation + this.stepIndentation), pair.getFirst(), pair.getSecond().format())));
+            innerLines.add(String.join("", Collections.nCopies(this.indentation, " ")) + String.format("class %s {", this.name));
+            pairs.forEach(pair -> innerLines.add(String.format("%s%s(...args: object): %s",
+                    String.join("", Collections.nCopies(this.indentation + this.stepIndentation, " ")), pair.getFirst(), pair.getSecond().format())));
             innerLines.add("}\n");
             return String.join("\n", innerLines);
         }
@@ -42,8 +44,8 @@ public class TSDummyClassFormatter {
         @Override
         public String format() {
             List<String> innerLines = new ArrayList<>();
-            innerLines.add(" ".repeat(this.indentation) + "class %s {".formatted(this.name));
-            pairs.forEach(pair -> innerLines.add("%s%s: %s".formatted(" ".repeat(this.indentation + this.stepIndentation), pair.getFirst(), pair.getSecond())));
+            innerLines.add(String.join("", Collections.nCopies(this.indentation, " ")) + String.format("class %s {", this.name));
+            pairs.forEach(pair -> innerLines.add(String.format("%s%s: %s", String.join("", Collections.nCopies(this.indentation + this.stepIndentation, " ")), pair.getFirst(), pair.getSecond())));
             innerLines.add("}\n");
             return String.join("\n", innerLines);
         }
@@ -62,7 +64,7 @@ public class TSDummyClassFormatter {
         @Override
         protected List<String> compileFields(Set<String> usedMethod) {
             List<String> lines = super.compileFields(usedMethod);
-            lines.add(" ".repeat(this.indentation + this.stepIndentation) + "recipes: stub.probejs.RecipeHolder;");
+            lines.add(String.join("", Collections.nCopies(this.indentation + this.stepIndentation, " ")) + "recipes: stub.probejs.RecipeHolder;");
             return lines;
         }
     }

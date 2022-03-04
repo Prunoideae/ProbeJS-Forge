@@ -1,5 +1,6 @@
 package com.prunoideae.probejs.toucher;
 
+import com.google.common.collect.Lists;
 import com.google.common.primitives.Primitives;
 
 import java.lang.reflect.*;
@@ -58,8 +59,8 @@ public class ClassToucher {
         if (info instanceof TypeVariable)
             return new ArrayList<>();
         if (info instanceof WildcardType) {
-            List<Type> bounds = new ArrayList<>(List.of(((WildcardType) info).getLowerBounds()));
-            bounds.addAll(List.of(((WildcardType) info).getUpperBounds()));
+            List<Type> bounds = Arrays.stream(((WildcardType) info).getLowerBounds()).collect(Collectors.toList());
+            bounds.addAll(Arrays.stream(((WildcardType) info).getUpperBounds()).collect(Collectors.toList()));
             return bounds.stream().map(ClassToucher::touchType).flatMap(Collection::stream).collect(Collectors.toList());
         }
         if (info instanceof GenericArrayType)
@@ -67,13 +68,13 @@ public class ClassToucher {
         if (info instanceof ParameterizedType) {
             List<Type> types = new ArrayList<>();
             types.add(((ParameterizedType) info).getRawType());
-            types.addAll(List.of(((ParameterizedType) info).getActualTypeArguments()));
+            types.addAll(Arrays.stream(((ParameterizedType) info).getActualTypeArguments()).collect(Collectors.toList()));
             return types.stream().map(ClassToucher::touchType).flatMap(Collection::stream).collect(Collectors.toList());
         }
         if (info instanceof Class) {
-            return List.of((Class<?>) info);
+            return Lists.newArrayList((Class<?>) info);
         }
-        throw new UnsupportedOperationException("Unknown type! %s (%s)".formatted(info.getTypeName(), info.getClass()));
+        throw new UnsupportedOperationException(String.format("Unknown type! %s (%s)", info.getTypeName(), info.getClass()));
     }
 
     public Set<Class<?>> touchClass() {
