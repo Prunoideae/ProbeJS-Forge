@@ -144,8 +144,8 @@ public class ByteCodeScanner {
         for (String clazzName : eventClasses.keySet()) {
             if (!visited.contains(clazzName)) {
                 unresolvedEvents.add(eventClasses.get(clazzName));
-                //如果这个事件有没有子类的话，有可能它根本没有特定的事件，就不显示给玩家了
-                if (clazzGraph.containsKey(clazzName)) {
+                //如果这个事件没有子类的话，有可能它根本没有特定的事件，就不显示给玩家了
+                if (!clazzGraph.containsKey(clazzName)) {
                     possibleUnresolvedEventsCount++;
                 }
             }

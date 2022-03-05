@@ -100,9 +100,9 @@ public class ProbeCommands {
         long elapsed = System.currentTimeMillis() - begin;
         source.sendSuccess(new TranslatableComponent("Finished scanning for %s s, Found %s KubeJs events", elapsed / 1000, scanner.resolvedEvents.size()), false);
         if (unresolved > 0) {
-            source.sendSuccess(new TranslatableComponent("There are %s events unresolved, you may use 'captureEvent' to capture them", scanner.unresolvedEvents.size()), false);
+            source.sendSuccess(new TranslatableComponent("There are at least %s events unresolved, you may use 'captureEvent' to capture them", unresolved), false);
         }
-        ProbeJS.LOGGER.warn("There are {} events unresolved, you may use 'captureEvent' to capture them", unresolved);
+        ProbeJS.LOGGER.warn("There are at least {} events unresolved, you may use 'captureEvent' to capture them", unresolved);
         ProbeJS.LOGGER.info("------ Unresolved Events ------");
         for (Class<?> unresolvedEvent : scanner.unresolvedEvents) {
             ProbeJS.LOGGER.info(unresolvedEvent.getCanonicalName());
