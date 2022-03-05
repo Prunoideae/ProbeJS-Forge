@@ -80,7 +80,6 @@ public class SpecialFormatters {
     }
 
     public static void init() {
-        TSGlobalClassFormatter.specialClassFormatter.put(RecipeEventJS.class, TSDummyClassFormatter.RecipeEventJSFormatter.class);
         putTypeFormatter(BiConsumer.class, generateTypedFunction(2, "void"));
         putTypeFormatter(BiFunction.class, generateParamFunction(3));
         putTypeFormatter(BiPredicate.class, generateTypedFunction(2, "boolean"));
@@ -92,11 +91,11 @@ public class SpecialFormatters {
         putResolvedNames("boolean", Boolean.TYPE, Boolean.class);
         putResolvedNames("number", Byte.TYPE, Byte.class);
         putResolvedNames("string", Character.TYPE, Character.class);
-        putResolvedNames("number", Double.TYPE, Double.class);
-        putResolvedNames("number", Float.TYPE, Float.class);
-        putResolvedNames("number", Integer.TYPE, Integer.class);
-        putResolvedNames("number", Long.TYPE, Long.class);
-        putResolvedNames("number", Short.TYPE, Short.class);
+        putResolvedNames("double", Double.TYPE, Double.class);
+        putResolvedNames("float", Float.TYPE, Float.class);
+        putResolvedNames("integer", Integer.TYPE, Integer.class);
+        putResolvedNames("long", Long.TYPE, Long.class);
+        putResolvedNames("short", Short.TYPE, Short.class);
         putResolvedNames("void", Void.TYPE, Void.class);
         putResolvedNames("string", String.class);
         putResolvedNames("object", Object.class);

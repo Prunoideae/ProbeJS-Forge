@@ -4,6 +4,10 @@ import com.google.common.collect.Lists;
 import com.google.gson.JsonObject;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
+import com.prunoideae.probejs.resolver.document.DocumentManager;
+import com.prunoideae.probejs.resolver.document.DocumentResolver;
+import com.prunoideae.probejs.resolver.document.info.ClassDocument;
+import com.prunoideae.probejs.toucher.ClassInfo;
 import com.prunoideae.probejs.typings.KubeCompiler;
 import com.prunoideae.probejs.typings.ProbeCompiler;
 import com.prunoideae.probejs.typings.SpecialFormatters;
@@ -17,6 +21,8 @@ import net.minecraft.server.commands.ReloadCommand;
 import net.minecraft.server.packs.repository.PackRepository;
 import net.minecraft.world.level.storage.WorldData;
 
+import java.io.BufferedReader;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -29,6 +35,7 @@ public class ProbeCommands {
                                 .requires(source -> source.getServer().isSingleplayer() || source.hasPermission(2))
                                 .executes(context -> {
                                     try {
+                                        DocumentManager.init();
                                         export(context.getSource());
                                         KubeCompiler.fromKubeDump();
                                         context.getSource().sendSuccess(new TextComponent("KubeJS registry snippets generated."), false);
@@ -41,21 +48,26 @@ public class ProbeCommands {
                                     context.getSource().sendSuccess(new TextComponent("ProbeJS typing generation finished."), false);
                                     return Command.SINGLE_SUCCESS;
                                 }))
-                        .then(Commands.literal("clear_cache"))
-                        .requires(source -> source.getServer().isSingleplayer() || source.hasPermission(2))
-                        .executes(context -> {
-                            Path path = KubeJSPaths.EXPORTED.resolve("cachedEvents.json");
-                            if (Files.exists(path)) {
-                                if (path.toFile().delete()) {
-                                    context.getSource().sendSuccess(new TextComponent("Cache files removed."), false);
-                                } else {
-                                    context.getSource().sendSuccess(new TextComponent("Failed to remove cache files."), false);
-                                }
-                            } else {
-                                context.getSource().sendSuccess(new TextComponent("No cached files to be cleared."), false);
-                            }
-                            return Command.SINGLE_SUCCESS;
-                        })
+                        .then(Commands.literal("clear_cache")
+                                .requires(source -> source.getServer().isSingleplayer() || source.hasPermission(2))
+                                .executes(context -> {
+                                    Path path = KubeJSPaths.EXPORTED.resolve("cachedEvents.json");
+                                    if (Files.exists(path)) {
+                                        if (path.toFile().delete()) {
+                                            context.getSource().sendSuccess(new TextComponent("Cache files removed."), false);
+                                        } else {
+                                            context.getSource().sendSuccess(new TextComponent("Failed to remove cache files."), false);
+                                        }
+                                    } else {
+                                        context.getSource().sendSuccess(new TextComponent("No cached files to be cleared."), false);
+                                    }
+                                    return Command.SINGLE_SUCCESS;
+                                }))
+                        .then(Commands.literal("test")
+                                .executes(context -> {
+                                    DocumentManager.init();
+                                    return Command.SINGLE_SUCCESS;
+                                }))
         );
     }
 

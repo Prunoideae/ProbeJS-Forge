@@ -4,6 +4,11 @@ A data dumper and typing generator for the KubeJS functions, constants and class
 
 Great thanks to @DAmNRelentless, @LatvianModder and @yesterday17 for invaluable suggestions during the development!
 
+With the release of v1.5.0, applying static documents to the game is possible! However, this change disabled the
+automatic dump of documents, so ProbeJS is currently needing a large amount of support, and please don't hesitate if you have a PR!
+
+For the detailed information, please refer to the wiki page.
+
 ## 1. Showcase
 
 Auto-completion snippets for Items, Blocks, Fluids, Entities and Tags:

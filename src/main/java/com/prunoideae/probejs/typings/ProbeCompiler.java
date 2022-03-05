@@ -5,6 +5,8 @@ import com.google.gson.Gson;
 import com.mojang.datafixers.util.Pair;
 import com.prunoideae.probejs.ProbeJS;
 import com.prunoideae.probejs.plugin.WrappedEventHandler;
+import com.prunoideae.probejs.resolver.document.DocumentFormatter;
+import com.prunoideae.probejs.resolver.document.DocumentManager;
 import com.prunoideae.probejs.toucher.ClassInfo;
 import com.prunoideae.probejs.toucher.ClassToucher;
 import dev.latvian.mods.kubejs.KubeJSPaths;
@@ -75,7 +77,7 @@ public class ProbeCompiler {
                             namespacedClasses.computeIfAbsent(pathName, p -> new ArrayList<>()).add(formatter);
                         } else {
                             try {
-                                writer.write("declare " + formatter.format());
+                                writer.write(formatter.format());
                                 if (info.getClazz().isInterface())
                                     writer.write("declare const %s: %s;\n".formatted(TSGlobalClassFormatter.resolvedClassName.get(clazz.getName()), TSGlobalClassFormatter.resolvedClassName.get(clazz.getName())));
                             } catch (IOException e) {
@@ -84,22 +86,7 @@ public class ProbeCompiler {
                         }
                     });
 
-            HashMap<String, List<Pair<String, TSGlobalClassFormatter.TypeFormatter>>> recipeMethodClassPlaceholder = new HashMap<>();
-            Set<Pair<String, String>> recipeHolderFields = new HashSet<>();
-            typeMap.forEach((k, v) -> {
-                String namespace = k.getNamespace();
-                namespace = namespace.substring(0, 1).toUpperCase(Locale.ROOT) + namespace.substring(1);
-                recipeMethodClassPlaceholder.computeIfAbsent(namespace, s -> new ArrayList<>()).add(new Pair<>(k.getPath(), new TSGlobalClassFormatter.TypeFormatter(new ClassInfo.TypeInfo(v.factory.get().getClass(), v.factory.get().getClass()))));
-                recipeHolderFields.add(new Pair<>(k.getNamespace(), "stub.probejs.recipes.%s".formatted(namespace)));
-            });
-
-            List<TSGlobalClassFormatter.ClassFormatter> dummyRecipeClasses = new ArrayList<>();
-            recipeMethodClassPlaceholder.forEach((k, v) -> dummyRecipeClasses.add(new TSDummyClassFormatter.DummyMethodClassFormatter(k, v)));
-            namespacedClasses.put("stub.probejs.recipes", dummyRecipeClasses);
-            namespacedClasses.put("stub.probejs", List.of(new TSDummyClassFormatter.DummyFieldClassFormatter("RecipeHolder", recipeHolderFields.stream().toList())));
-
             namespacedClasses.forEach((k, v) -> {
-
                 try {
                     writer.write(new TSGlobalClassFormatter.NamespaceFormatter(k, v, 4, 0, false).format());
                 } catch (IOException e) {
@@ -107,6 +94,7 @@ public class ProbeCompiler {
                 }
 
             });
+            writer.write(String.join("\n", new DocumentFormatter(DocumentManager.classAddition, 4, 4).format()));
             writer.flush();
         } catch (IOException e) {
             e.printStackTrace();

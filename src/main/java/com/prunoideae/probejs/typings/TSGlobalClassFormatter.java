@@ -2,8 +2,14 @@ package com.prunoideae.probejs.typings;
 
 import com.mojang.datafixers.util.Pair;
 import com.prunoideae.probejs.ProbeJS;
+import com.prunoideae.probejs.resolver.document.Document;
+import com.prunoideae.probejs.resolver.document.DocumentManager;
+import com.prunoideae.probejs.resolver.document.info.ClassDocument;
+import com.prunoideae.probejs.resolver.document.info.FieldDocument;
+import com.prunoideae.probejs.resolver.document.info.MethodDocument;
 import com.prunoideae.probejs.toucher.ClassInfo;
 import dev.latvian.mods.kubejs.recipe.RecipeEventJS;
+import it.unimi.dsi.fastutil.Hash;
 
 import java.lang.reflect.*;
 import java.util.*;
@@ -108,22 +114,54 @@ public class TSGlobalClassFormatter {
 
     public static class MethodFormatter implements ITSFormatter {
         private final ClassInfo.MethodInfo methodInfo;
+        private final MethodDocument document;
 
         public MethodFormatter(ClassInfo.MethodInfo methodInfo) {
+            this(methodInfo, null);
+        }
+
+        public MethodFormatter(ClassInfo.MethodInfo methodInfo, MethodDocument document) {
             this.methodInfo = methodInfo;
+            this.document = document;
+            if (document != null)
+                ProbeJS.LOGGER.info("SUCCESS");
         }
 
         @Override
         public String format() {
+            HashMap<String, String> paramModifiers = new HashMap<>();
+            
+            if (document != null && document.getCommentDocument() != null)
+                paramModifiers.putAll(document.getCommentDocument().getParamModifiers());
+            Set<String> usedModifiers = new HashSet<>();
+
+            String formattedParams = this.methodInfo
+                    .getParamsInfo()
+                    .stream()
+                    .map(paramInfo -> {
+                        if (document == null || document.getCommentDocument() == null)
+                            return new ParameterFormater(paramInfo).format();
+                        String modifiedType = paramModifiers.get(paramInfo.getName());
+                        if (modifiedType == null)
+                            return new ParameterFormater(paramInfo).format();
+                        usedModifiers.add(paramInfo.getName());
+                        return modifiedType.equals("null") ? null : "%s: %s".formatted(paramInfo.getName(), Document.formatType(modifiedType));
+                    })
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.joining(", "));
+            String modifierParams = paramModifiers.entrySet().stream().filter(e -> !usedModifiers.contains(e.getKey())).map(e -> "%s: %s".formatted(e.getKey(), Document.formatType(e.getValue()))).collect(Collectors.joining(", "));
+
+            if (formattedParams.isEmpty())
+                formattedParams = modifierParams;
+            else if (!modifierParams.isEmpty())
+                formattedParams = formattedParams + ", " + modifierParams;
+
             String formatted = "%s(%s): %s;".formatted(
                     this.methodInfo.getName(),
-                    this.methodInfo
-                            .getParamsInfo()
-                            .stream()
-                            .map(ParameterFormater::new)
-                            .map(ParameterFormater::format)
-                            .collect(Collectors.joining(", ")),
-                    new TypeFormatter(this.methodInfo.getReturnTypeInfo()).format());
+                    formattedParams,
+                    (document == null || document.getCommentDocument() == null || document.getCommentDocument().getReturnTypeModifier() == null)
+                            ? new TypeFormatter(this.methodInfo.getReturnTypeInfo()).format()
+                            : Document.formatType(document.getCommentDocument().getReturnTypeModifier()));
             if (this.methodInfo.isStatic())
                 formatted = "static " + formatted;
             return formatted;
@@ -190,6 +228,7 @@ public class TSGlobalClassFormatter {
         protected Integer stepIndentation;
         private Predicate<String> namePredicate;
         private final boolean useSpecialFormatters;
+        private final List<ClassDocument> documents;
 
 
         public ClassFormatter(ClassInfo classInfo, Integer indentation, Integer stepIndentation, Predicate<String> namePredicate, boolean useSpecialFormatters) {
@@ -198,6 +237,7 @@ public class TSGlobalClassFormatter {
             this.stepIndentation = stepIndentation;
             this.namePredicate = namePredicate;
             this.useSpecialFormatters = useSpecialFormatters;
+            this.documents = DocumentManager.classModifiers.getOrDefault(classInfo.getClazz().getName(), new ArrayList<>());
         }
 
         public ClassFormatter(ClassInfo classInfo, Integer indentation, Integer stepIndentation, Predicate<String> namePredicate) {
@@ -230,7 +270,7 @@ public class TSGlobalClassFormatter {
         protected List<String> compileMethods() {
             int linesIdent = this.indentation + stepIndentation;
             List<String> innerLines = new ArrayList<>();
-            /* TODO: add support for beans
+            /*
              * Criteria: tranfsorm .get?() methods to .? fields.
              * If an field of same name exist, ignore it.
              * .get() beans will be readonly, having a .set() will remove the readonly statement.
@@ -239,6 +279,8 @@ public class TSGlobalClassFormatter {
 
             Set<ClassInfo.MethodInfo> beaned = new HashSet<>();
             Set<String> existedNames = classInfo.getFields().stream().map(ClassInfo.FieldInfo::getName).collect(Collectors.toSet());
+            Set<String> overriddenNames = new HashSet<>();
+            this.documents.forEach(document -> document.getFieldDocuments().forEach(fieldDocument -> overriddenNames.add(fieldDocument.getName())));
             existedNames.addAll(classInfo.getMethods().stream().map(ClassInfo.MethodInfo::getName).collect(Collectors.toSet()));
 
             //Add class getters/setters to beaned
@@ -264,12 +306,9 @@ public class TSGlobalClassFormatter {
             Set<String> beanedNames = new HashSet<>();
             HashMap<String, ClassInfo.MethodInfo> cachedGetterNames = new HashMap<>();
             beaned.forEach(methodInfo -> {
-                //TODO: Make it more convenient, although idk how
-                if (classInfo.getClazz() == RecipeEventJS.class) {
-                    if (methodInfo.getName().equals("getRecipes"))
-                        return;
-                }
                 String beanName = getCamelCase(methodInfo.getName().substring(3));
+                if (overriddenNames.contains(beanName))
+                    return;
                 if (methodInfo.getName().startsWith("get")) {
                     if (beanedNames.contains(beanName))
                         return;
@@ -335,22 +374,38 @@ public class TSGlobalClassFormatter {
                 innerLines.add(" ".repeat(linesIdent) + formatted);
             });
 
+            HashMap<String, List<MethodDocument>> documentsOfMethod = new HashMap<>();
+            documents.forEach(classDoc -> classDoc.getMethodDocuments().forEach(method -> documentsOfMethod.computeIfAbsent(method.getName(), o -> new ArrayList<>()).add(method)));
+
             classInfo.getMethods()
                     .stream()
                     .filter(methodInfo -> this.namePredicate.test(methodInfo.getName()))
                     .filter(methodInfo -> !beaned.contains(methodInfo))
-                    .forEach(methodInfo -> innerLines.add(" ".repeat(linesIdent) + new MethodFormatter(methodInfo).format()));
+                    .forEach(methodInfo -> {
+                        MethodDocument methodDocument = null;
+                        List<MethodDocument> documentsList = documentsOfMethod.get(methodInfo.getName());
+                        if (documentsList != null) {
+                            methodDocument = documentsList.stream().filter(m -> m.isMatch(methodInfo)).findFirst().orElse(null);
+                        }
+                        if (methodDocument != null && methodDocument.getCommentDocument() != null)
+                            innerLines.addAll(methodDocument.getCommentDocument().getCommentText(linesIdent));
+                        innerLines.add(" ".repeat(linesIdent) + new MethodFormatter(methodInfo, methodDocument).format());
+                    });
             return innerLines;
         }
 
         protected List<String> compileFields(Set<String> usedMethod) {
-            int linesIdent = this.indentation + stepIndentation;
+            HashMap<String, FieldDocument> fieldDocuments = new HashMap<>();
+            documents.forEach(document -> document.getFieldDocuments().forEach(fieldDocument -> fieldDocuments.put(fieldDocument.getName(), fieldDocument)));
+            int linesIndent = this.indentation + stepIndentation;
             List<String> innerLines = new ArrayList<>();
             classInfo.getFields()
                     .stream()
+                    .filter(fieldInfo -> !fieldDocuments.containsKey(fieldInfo.getName()))
                     .filter(fieldInfo -> !usedMethod.contains(fieldInfo.getName()))
                     .filter(fieldInfo -> this.namePredicate.test(fieldInfo.getName()))
-                    .forEach(fieldInfo -> innerLines.add(" ".repeat(linesIdent) + new FieldFormatter(fieldInfo).format()));
+                    .forEach(fieldInfo -> innerLines.add(" ".repeat(linesIndent) + new FieldFormatter(fieldInfo).format()));
+            fieldDocuments.forEach((s, fieldDocument) -> innerLines.addAll(fieldDocument.format(linesIndent)));
             return innerLines;
         }
 
@@ -377,6 +432,10 @@ public class TSGlobalClassFormatter {
             }
 
             List<String> innerLines = new ArrayList<>();
+            this.documents.stream()
+                    .filter(document -> document.getComment() != null)
+                    .findFirst()
+                    .ifPresent(commentedDocument -> innerLines.addAll(commentedDocument.getComment().getCommentText(this.indentation)));
 
             //Compile the first line of class declaration
             String[] classPath = resolvedClassName.get(this.classInfo.getClazz().getName()).split("\\.");
