@@ -50,7 +50,7 @@ public class ProbeCompiler {
         touchableClasses.addAll(cachedClasses);
         touchableClasses.addAll(typeMap.values().stream().map(recipeTypeJS -> recipeTypeJS.factory.get().getClass()).collect(Collectors.toList()));
         touchableClasses.addAll(bindingEvent.getConstantDumpMap().values().stream().map(Object::getClass).collect(Collectors.toList()));
-        touchableClasses.addAll(WrappedEventHandler.capturedEvents.values());
+        touchableClasses.addAll(TSGlobalClassFormatter.byteCodeScanner.resolvedEvents.values());
 
         ProbeJS.LOGGER.info("Querying all classes accessible...");
         Set<Class<?>> globalClasses = new HashSet<>(touchableClasses);
@@ -120,7 +120,7 @@ public class ProbeCompiler {
         ProbeJS.LOGGER.info("Compiling captured events...");
         try (BufferedWriter writer = Files.newBufferedWriter(outFile)) {
             writer.write("/// <reference path=\"./globals.d.ts\" />\n");
-            cachedEvents.putAll(WrappedEventHandler.capturedEvents);
+            cachedEvents.putAll(TSGlobalClassFormatter.byteCodeScanner.resolvedEvents);
             cachedEvents.forEach(
                     (capture, event) -> {
                         try {
