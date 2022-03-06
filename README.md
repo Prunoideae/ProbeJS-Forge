@@ -4,8 +4,18 @@ A data dumper and typing generator for the KubeJS functions, constants and class
 
 Great thanks to @DAmNRelentless, @LatvianModder and @yesterday17 for invaluable suggestions during the development!
 
-With the release of v1.5.0, applying static documents to the game is possible! However, this change disabled the
-automatic dump of documents, so ProbeJS is currently needing a large amount of support, and please don't hesitate if you have a PR!
+For things not dumped, or maybe if you want to add some more comments to class, methods or fields, you can add static
+documents to override auto-generated typing!
+
+ProbeJS also has builtin documents to support some other mods' recipes, but it's not completed, if you want to add
+something to the document, maybe you can send a PR too!
+
+Current progress of mod documents:
+
+- Minecraft (Completed)
+- Create (Partially Completed)
+- Integrated Dynamics (Not Completed)
+- Others (Please PR)
 
 For the detailed information, please refer to the wiki page.
 
