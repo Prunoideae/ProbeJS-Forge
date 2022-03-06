@@ -14,7 +14,7 @@ Current progress of mod documents:
 
 - Minecraft (Completed)
 - Create (Completed)
-- Integrated Dynamics (Not Completed)
+- Integrated Dynamics (Completed)
 - Others (Please PR)
 
 For the detailed information, please refer to the wiki page.

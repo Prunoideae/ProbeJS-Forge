@@ -28,8 +28,17 @@ public class CommentDocument {
 
     public List<String> getCommentText(int indentation) {
         return rawCommentText.stream().filter(s -> {
-            String d = Document.removeBlank(s);
-            return !d.startsWith("* @param") && !d.startsWith("* @returns");
+            String d = s.strip();
+            if (d.startsWith("*"))
+                d = d.substring(1).strip();
+            if (d.startsWith("@param")) {
+                String[] parts = d.split(" ");
+                if (parts.length < 3)
+                    return true;
+                String type = parts[1];
+                return !(type.contains("{") && type.contains("}"));
+            }
+            return !d.startsWith("@returns");
         }).map(s -> " ".repeat(indentation) + s).collect(Collectors.toList());
     }
 
