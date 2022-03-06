@@ -74,8 +74,8 @@ public class DocumentManager {
             classModifiers.clear();
             classAddition.clear();
             DocumentResolver resolver = new DocumentResolver();
-            fromPath(resolver);
             fromFiles(resolver);
+            fromPath(resolver);
             resolver.getDocument().resolveClasses().forEach(document -> {
                 if (document.getTarget() == null) {
                     addClassAddition(document.getName(), document);

@@ -32,6 +32,7 @@ public class ClassDocument {
                         field.setComment(new CommentDocument(comment));
                     fieldDocuments.add(field);
                 }
+                comment = null;
             }
         }
 

@@ -4,7 +4,6 @@ import com.prunoideae.probejs.resolver.document.info.ClassDocument;
 import com.prunoideae.probejs.resolver.document.info.FieldDocument;
 import com.prunoideae.probejs.resolver.document.info.MethodDocument;
 
-import javax.print.Doc;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;

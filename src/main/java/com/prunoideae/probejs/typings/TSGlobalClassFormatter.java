@@ -130,7 +130,7 @@ public class TSGlobalClassFormatter {
         @Override
         public String format() {
             HashMap<String, String> paramModifiers = new HashMap<>();
-            
+
             if (document != null && document.getCommentDocument() != null)
                 paramModifiers.putAll(document.getCommentDocument().getParamModifiers());
             Set<String> usedModifiers = new HashSet<>();
@@ -391,17 +391,36 @@ public class TSGlobalClassFormatter {
                             innerLines.addAll(methodDocument.getCommentDocument().getCommentText(linesIdent));
                         innerLines.add(" ".repeat(linesIdent) + new MethodFormatter(methodInfo, methodDocument).format());
                     });
+
+            HashMap<String, MethodDocument> documentsRemained = new HashMap<>();
+            documents.forEach(classDoc -> classDoc.getMethodDocuments().forEach(method -> documentsRemained.put(method.getName() + String.join(",", method.getParams().values()) + method.getReturnType(), method)));
+            List<ClassInfo.MethodInfo> allMethods = classInfo.getMethods();
+            documentsRemained.entrySet().stream().filter(e -> allMethods.stream().noneMatch(m -> e.getValue().isMatch(m))).forEach(entry -> {
+                MethodDocument document = entry.getValue();
+                if (document.getCommentDocument() != null)
+                    innerLines.addAll(document.getCommentDocument().getCommentText(linesIdent));
+                String paramsString = document.getParams().entrySet().stream().map(e -> e.getKey() + ": " + Document.formatType(e.getValue())).collect(Collectors.joining(", "));
+                String method = "%s(%s): %s".formatted(document.getName(), paramsString, Document.formatType(document.getReturnType()));
+                if (document.isStatic())
+                    method = "static " + method;
+                method = " ".repeat(linesIdent) + method;
+                innerLines.add(method);
+
+            });
             return innerLines;
         }
 
         protected List<String> compileFields(Set<String> usedMethod) {
             HashMap<String, FieldDocument> fieldDocuments = new HashMap<>();
+            HashSet<String> methodDocuments = new HashSet<>();
+            documents.forEach(document -> document.getMethodDocuments().forEach(methodDocument -> methodDocuments.add(methodDocument.getName())));
             documents.forEach(document -> document.getFieldDocuments().forEach(fieldDocument -> fieldDocuments.put(fieldDocument.getName(), fieldDocument)));
             int linesIndent = this.indentation + stepIndentation;
             List<String> innerLines = new ArrayList<>();
             classInfo.getFields()
                     .stream()
                     .filter(fieldInfo -> !fieldDocuments.containsKey(fieldInfo.getName()))
+                    .filter(fieldInfo -> !methodDocuments.contains(fieldInfo.getName()))
                     .filter(fieldInfo -> !usedMethod.contains(fieldInfo.getName()))
                     .filter(fieldInfo -> this.namePredicate.test(fieldInfo.getName()))
                     .forEach(fieldInfo -> innerLines.add(" ".repeat(linesIndent) + new FieldFormatter(fieldInfo).format()));
