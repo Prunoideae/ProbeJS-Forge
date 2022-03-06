@@ -13,7 +13,7 @@ something to the document, maybe you can send a PR too!
 Current progress of mod documents:
 
 - Minecraft (Completed)
-- Create (Partially Completed)
+- Create (Completed)
 - Integrated Dynamics (Not Completed)
 - Others (Please PR)
 

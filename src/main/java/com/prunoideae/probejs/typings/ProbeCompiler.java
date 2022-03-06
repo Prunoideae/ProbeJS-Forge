@@ -8,6 +8,7 @@ import com.prunoideae.probejs.ProbePaths;
 import com.prunoideae.probejs.plugin.WrappedEventHandler;
 import com.prunoideae.probejs.resolver.document.DocumentFormatter;
 import com.prunoideae.probejs.resolver.document.DocumentManager;
+import com.prunoideae.probejs.resolver.document.part.PartTypeDecl;
 import com.prunoideae.probejs.toucher.ClassInfo;
 import com.prunoideae.probejs.toucher.ClassToucher;
 import dev.latvian.mods.kubejs.KubeJSPaths;
@@ -96,6 +97,11 @@ public class ProbeCompiler {
 
             });
             writer.write(String.join("\n", new DocumentFormatter(DocumentManager.classAddition, 4, 4).format()));
+            writer.write("\ndeclare namespace Type {\n");
+            for (PartTypeDecl partTypeDecl : DocumentManager.typeDeclaration.values()) {
+                writer.write(String.join("\n", partTypeDecl.format(4)));
+            }
+            writer.write("}\n");
             writer.flush();
         } catch (IOException e) {
             e.printStackTrace();

@@ -42,9 +42,12 @@ public class CommentDocument {
                 .map(Document::removeBlank)
                 .filter(s -> s.startsWith("@param "))
                 .map(s -> s.substring(7))
+                .filter(s -> s.contains("{") && s.contains("}"))
                 .forEach(s -> {
                     String[] typeParam = s.split(" ");
                     if (typeParam.length < 2)
+                        return;
+                    if (!typeParam[0].contains("{") || !typeParam[0].contains("}"))
                         return;
                     params.put(typeParam[1].strip(), typeParam[0].substring(1, typeParam[0].length() - 1));
                 });

@@ -8,6 +8,9 @@ class RecipeHolder {
     readonly create: Document.CreateRecipes;
 }
 
+type ItemStackOrFluid = dev.latvian.mods.kubejs.item.ItemStackJS | dev.latvian.mods.kubejs.fluid.FluidStackJS;
+type IngredientOrFluid = dev.latvian.mods.kubejs.item.ingredient.IngredientJS | dev.latvian.mods.kubejs.fluid.FluidStackJS;
+
 @Mod("create")
 @Mod("kubejs_create")
 class CreateRecipes {
@@ -25,10 +28,12 @@ class CreateRecipes {
     milling(outputs: dev.latvian.mods.kubejs.item.ItemStackJS[], input: dev.latvian.mods.kubejs.item.ingredient.IngredientJS): dev.latvian.mods.kubejs.create.ProcessingRecipeJS;
     /**
      * Creates a recipe for Compacting.
-     * 
-     * Different from Pressing, Compacting uses a Basin as container, can have multiple items as inputs, and up to 2 fluid inputs.
      */
-    compacting(output: dev.latvian.mods.kubejs.item.ItemStackJS, inputs: dev.latvian.mods.kubejs.item.ingredient.IngredientJS[]): dev.latvian.mods.kubejs.create.ProcessingRecipeJS;
+    compacting(output: Type.ItemStackOrFluid, inputs: Type.IngredientOrFluid[]): dev.latvian.mods.kubejs.create.ProcessingRecipeJS;
+    /**
+     * Creates a recipe for Mixing.
+     */
+    mixing(output: Type.ItemStackOrFluid, inputs: Type.IngredientOrFluid[]): dev.latvian.mods.kubejs.create.ProcessingRecipeJS;
     /**
      * Creates a recipe for Pressing.
      * 
@@ -54,6 +59,32 @@ class CreateRecipes {
      * 
      * Filling is available as an Assembly step.
      */
-    filling(output: dev.latvian.mods.kubejs.item.ItemStackJS, input: dev.latvian.mods.kubejs.item.ingredient.IngredientJS): dev.latvian.mods.kubejs.create.ProcessingRecipeJS;
+    filling(output: dev.latvian.mods.kubejs.item.ItemStackJS, input: Type.IngredientOrFluid[]): dev.latvian.mods.kubejs.create.ProcessingRecipeJS;
+    /**
+     * Creates a recipe for Sequenced Assembly.
+     * 
+     * The sequnce must use recipes which is available for Assembly.
+     */
+    sequenced_assembly(output: dev.latvian.mods.kubejs.item.ItemStackJS[], input: dev.latvian.mods.kubejs.item.ingredient.IngredientJS, sequence: dev.latvian.mods.kubejs.create.ProcessingRecipeJS[]): dev.latvian.mods.kubejs.create.SequencedAssemblyRecipeJS;
+    /**
+     * Creates a recipe for Splashing.
+     */
+    splashing(output: dev.latvian.mods.kubejs.item.ItemStackJS[], input: dev.latvian.mods.kubejs.item.ingredient.IngredientJS): dev.latvian.mods.kubejs.create.ProcessingRecipeJS;
+    /**
+     * Creates a recipe for Haunting.
+     */
+    haunting(output: dev.latvian.mods.kubejs.item.ItemStackJS[], input: dev.latvian.mods.kubejs.item.ingredient.IngredientJS): dev.latvian.mods.kubejs.create.ProcessingRecipeJS;
+    /**
+     * Creates a recipe for Sandpaper Polishing.
+     */
+    sandpaper_polishing(output: dev.latvian.mods.kubejs.item.ItemStackJS, input: dev.latvian.mods.kubejs.item.ingredient.IngredientJS): dev.latvian.mods.kubejs.create.ProcessingRecipeJS;
+    /**
+     * Creates a recipe for Mechanical Crafting.
+     */
+    mechanical_crafting(output: dev.latvian.mods.kubejs.item.ItemStackJS, pattern: string[], items: java.util.Map<string, dev.latvian.mods.kubejs.item.ingredient.IngredientJS>): dev.latvian.mods.kubejs.create.ProcessingRecipeJS;
 
+    /**
+     * Creates a recipe for Emptying.
+     */
+    emptying(output: Type.ItemStackOrFluid[], input: dev.latvian.mods.kubejs.item.ingredient.IngredientJS): dev.latvian.mods.kubejs.create.ProcessingRecipeJS;
 }

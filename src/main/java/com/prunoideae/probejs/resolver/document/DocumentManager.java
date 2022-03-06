@@ -3,6 +3,8 @@ package com.prunoideae.probejs.resolver.document;
 import com.prunoideae.probejs.ProbeJS;
 import com.prunoideae.probejs.ProbePaths;
 import com.prunoideae.probejs.resolver.document.info.ClassDocument;
+import com.prunoideae.probejs.resolver.document.info.ClassDocuments;
+import com.prunoideae.probejs.resolver.document.part.PartTypeDecl;
 import dev.architectury.platform.Mod;
 import dev.architectury.platform.Platform;
 
@@ -18,6 +20,7 @@ import java.util.zip.ZipFile;
 public class DocumentManager {
     public static HashMap<String, List<ClassDocument>> classModifiers = new HashMap<>();
     public static HashMap<String, List<ClassDocument>> classAddition = new HashMap<>();
+    public static HashMap<String, PartTypeDecl> typeDeclaration = new HashMap<>();
 
     public static void addClassModifier(String target, ClassDocument document) {
         classModifiers.computeIfAbsent(target, t -> new ArrayList<>()).add(document);
@@ -73,16 +76,19 @@ public class DocumentManager {
         try {
             classModifiers.clear();
             classAddition.clear();
+            typeDeclaration.clear();
             DocumentResolver resolver = new DocumentResolver();
             fromFiles(resolver);
             fromPath(resolver);
-            resolver.getDocument().resolveClasses().forEach(document -> {
+            ClassDocuments documents = resolver.getDocument().resolveClasses();
+            documents.getClassDocuments().forEach(document -> {
                 if (document.getTarget() == null) {
                     addClassAddition(document.getName(), document);
                 } else {
                     addClassModifier(document.getTarget(), document);
                 }
             });
+            documents.getTypeDeclDocuments().forEach(partTypeDecl -> typeDeclaration.put(partTypeDecl.getName(), partTypeDecl));
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -3,6 +3,7 @@ package com.prunoideae.probejs.resolver.document;
 import com.prunoideae.probejs.resolver.document.info.ClassDocument;
 import com.prunoideae.probejs.resolver.document.info.FieldDocument;
 import com.prunoideae.probejs.resolver.document.info.MethodDocument;
+import com.prunoideae.probejs.resolver.document.part.PartTypeDecl;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -61,6 +62,10 @@ public class DocumentFormatter {
         lines.add("declare namespace Document {");
         documents.forEach((name, docs) -> lines.addAll(formatClass(name, docs)));
         lines.add("}");
+        HashMap<String, PartTypeDecl> types = new HashMap<>();
+        documents.forEach((name, docs) -> {
+
+        });
         return lines;
     }
 }
