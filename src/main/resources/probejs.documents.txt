@@ -1,0 +1,2 @@
+docs/create.d.ts
+docs/minecraft.d.ts
