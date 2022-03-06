@@ -4,6 +4,7 @@ import com.google.common.primitives.Primitives;
 import com.google.gson.Gson;
 import com.mojang.datafixers.util.Pair;
 import com.prunoideae.probejs.ProbeJS;
+import com.prunoideae.probejs.ProbePaths;
 import com.prunoideae.probejs.plugin.WrappedEventHandler;
 import com.prunoideae.probejs.resolver.document.DocumentFormatter;
 import com.prunoideae.probejs.resolver.document.DocumentManager;
@@ -183,7 +184,7 @@ public class ProbeCompiler {
                     {
                         "compilerOptions": {
                             "lib": ["ES5", "ES2015"],
-                            "typeRoots": ["kubetypings"]
+                            "typeRoots": ["./probe/generated", "./probe/user"]
                         }
                     }""");
         } catch (IOException e) {
@@ -192,9 +193,7 @@ public class ProbeCompiler {
     }
 
     public static void compileDeclarations() throws IOException {
-        Path typingDir = KubeJSPaths.DIRECTORY.resolve("kubetypings");
-        if (Files.notExists(typingDir))
-            Files.createDirectories(typingDir);
+
         DummyBindingEvent bindingEvent = new DummyBindingEvent(ServerScriptManager.instance.scriptManager);
         Map<ResourceLocation, RecipeTypeJS> typeMap = new HashMap<>();
         RegisterRecipeHandlersEvent recipeEvent = new RegisterRecipeHandlersEvent(typeMap);
@@ -220,11 +219,11 @@ public class ProbeCompiler {
         }
 
         Set<Class<?>> cachedClasses = new HashSet<>(cachedEvents.values());
-        Set<Class<?>> touchedClasses = compileGlobal(typingDir.resolve("globals.d.ts"), typeMap, bindingEvent, cachedClasses);
-        compileEvent(typingDir.resolve("events.d.ts"), cachedEvents);
-        compileConstants(typingDir.resolve("constants.d.ts"), bindingEvent);
-        compileJava(typingDir.resolve("java.d.ts"), touchedClasses);
-        compileIndex(typingDir.resolve("index.d.ts"));
+        Set<Class<?>> touchedClasses = compileGlobal(ProbePaths.GENERATED.resolve("globals.d.ts"), typeMap, bindingEvent, cachedClasses);
+        compileEvent(ProbePaths.GENERATED.resolve("events.d.ts"), cachedEvents);
+        compileConstants(ProbePaths.GENERATED.resolve("constants.d.ts"), bindingEvent);
+        compileJava(ProbePaths.GENERATED.resolve("java.d.ts"), touchedClasses);
+        compileIndex(ProbePaths.GENERATED.resolve("index.d.ts"));
         try (BufferedWriter writer = Files.newBufferedWriter(cachedEventPath)) {
             Map<String, String> eventsCache = new HashMap<>();
             cachedEvents.forEach((k, v) -> eventsCache.put(k, v.getName()));

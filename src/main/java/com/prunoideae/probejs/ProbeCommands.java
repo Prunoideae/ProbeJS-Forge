@@ -63,9 +63,9 @@ public class ProbeCommands {
                                     }
                                     return Command.SINGLE_SUCCESS;
                                 }))
-                        .then(Commands.literal("test")
+                        .then(Commands.literal("recipe_stub")
                                 .executes(context -> {
-                                    DocumentManager.init();
+                                    //TODO: add features for exporting stub of recipes
                                     return Command.SINGLE_SUCCESS;
                                 }))
         );

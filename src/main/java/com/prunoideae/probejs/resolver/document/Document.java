@@ -1,6 +1,5 @@
 package com.prunoideae.probejs.resolver.document;
 
-import com.prunoideae.probejs.ProbeJS;
 import com.prunoideae.probejs.resolver.Util;
 import com.prunoideae.probejs.resolver.document.info.ClassDocument;
 import com.prunoideae.probejs.resolver.document.info.CommentDocument;
