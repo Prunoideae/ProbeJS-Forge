@@ -79,23 +79,6 @@ public class KubeCompiler {
             return resultJson;
         }
 
-        public void writeDumpTags(Path path) throws IOException {
-            BufferedWriter writer = Files.newBufferedWriter(path);
-            List<String> types = new ArrayList<>();
-            this.tags.forEach((type, members) -> {
-                Map<String, List<String>> byMods = new HashMap<>();
-                members.forEach((resourceLocation, tagMembers) -> {
-                    String[] rl = resourceLocation.split(":");
-                    rl[1] = rl[1].replace("/", "_");
-                    byMods.computeIfAbsent(rl[0], key -> new ArrayList<>()).add("%s:%s".formatted(rl[1], new Gson().toJson(tagMembers)));
-                });
-                List<String> modsString = byMods.entrySet().stream().map(entry -> "%s:{%s}".formatted(entry.getKey(), String.join(",\n", entry.getValue()))).collect(Collectors.toList());
-                types.add("%s:{%s}".formatted(type, String.join(",\n", modsString)));
-            });
-            writer.write("// priority: 1000\n");
-            writer.write("const tags = {%s}".formatted(String.join(",\n", types)));
-            writer.flush();
-        }
     }
 
     public static void fromKubeDump() throws IOException {
@@ -114,9 +97,6 @@ public class KubeCompiler {
             writer.write(gson.toJson(kubeDump.toSnippet()));
             writer.flush();
 
-            kubeDump.writeDumpTags(KubeJSPaths.SERVER_SCRIPTS.resolve("dumps.js"));
-            kubeDump.writeDumpTags(KubeJSPaths.STARTUP_SCRIPTS.resolve("dumps.js"));
-            kubeDump.writeDumpTags(KubeJSPaths.CLIENT_SCRIPTS.resolve("dumps.js"));
         }
     }
 }
