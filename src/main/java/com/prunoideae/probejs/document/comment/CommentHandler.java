@@ -1,5 +1,7 @@
 package com.prunoideae.probejs.document.comment;
 
+import com.prunoideae.probejs.document.comment.special.*;
+
 import java.util.HashMap;
 import java.util.function.Function;
 
@@ -11,5 +13,6 @@ public class CommentHandler {
         specialCommentHandler.put("@modify", CommentModify::new);
         specialCommentHandler.put("@remove", CommentRemove::new);
         specialCommentHandler.put("@target", CommentTarget::new);
+        specialCommentHandler.put("@assignable", CommentAssign::new);
     }
 }
