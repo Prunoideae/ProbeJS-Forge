@@ -4,13 +4,10 @@ import com.google.common.collect.Lists;
 import com.google.gson.JsonObject;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
-import com.prunoideae.probejs.resolver.document.DocumentManager;
-import com.prunoideae.probejs.resolver.document.DocumentResolver;
-import com.prunoideae.probejs.resolver.document.info.ClassDocument;
-import com.prunoideae.probejs.toucher.ClassInfo;
-import com.prunoideae.probejs.typings.KubeCompiler;
-import com.prunoideae.probejs.typings.ProbeCompiler;
-import com.prunoideae.probejs.typings.SpecialFormatters;
+import com.prunoideae.probejs.compiler.SnippetCompiler;
+import com.prunoideae.probejs.old.resolver.document.DocumentManager;
+import com.prunoideae.probejs.old.typings.ProbeCompiler;
+import com.prunoideae.probejs.old.typings.SpecialFormatters;
 import dev.latvian.mods.kubejs.KubeJSPaths;
 import dev.latvian.mods.kubejs.server.ServerSettings;
 import net.minecraft.commands.CommandSourceStack;
@@ -21,8 +18,6 @@ import net.minecraft.server.commands.ReloadCommand;
 import net.minecraft.server.packs.repository.PackRepository;
 import net.minecraft.world.level.storage.WorldData;
 
-import java.io.BufferedReader;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -37,7 +32,7 @@ public class ProbeCommands {
                                     try {
                                         DocumentManager.init();
                                         export(context.getSource());
-                                        KubeCompiler.fromKubeDump();
+                                        SnippetCompiler.fromKubeDump();
                                         context.getSource().sendSuccess(new TextComponent("KubeJS registry snippets generated."), false);
                                         SpecialFormatters.init();
                                         ProbeCompiler.compileDeclarations();
