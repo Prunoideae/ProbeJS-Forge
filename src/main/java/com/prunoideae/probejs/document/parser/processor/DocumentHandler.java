@@ -42,8 +42,8 @@ public class DocumentHandler implements IStateHandler<String> {
             } else {
                 if (doc instanceof IConcrete) {
                     ((IConcrete) doc).acceptDeco(decos);
-                    decos.clear();
                 }
+                decos.clear();
                 elements.add(doc);
             }
         }
@@ -56,8 +56,10 @@ public class DocumentHandler implements IStateHandler<String> {
         for (Pair<Predicate<String>, BiFunction<String, DocumentHandler, IStateHandler<String>>> multiHandler : handlers) {
             if (multiHandler.getFirst().test(element)) {
                 IStateHandler<String> layer = multiHandler.getSecond().apply(element, this);
-                if (layer != null)
+                if (layer != null) {
+                    layer.trial(element, stack);
                     stack.add(layer);
+                }
                 return;
             }
         }

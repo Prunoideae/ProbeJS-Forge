@@ -9,10 +9,6 @@ import java.util.List;
 public class ProviderComment implements IStateHandler<String>, IDocumentProvider<DocumentComment> {
     private final List<String> comments = new ArrayList<>();
 
-    public ProviderComment() {
-        comments.add("/**");
-    }
-
     @Override
     public void trial(String element, List<IStateHandler<String>> stack) {
         comments.add(element);
