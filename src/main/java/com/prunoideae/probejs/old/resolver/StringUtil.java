@@ -1,4 +1,4 @@
-package com.prunoideae.probejs.document.parser.processor;
+package com.prunoideae.probejs.old.resolver;
 
 import com.prunoideae.probejs.document.parser.handler.AbstractStackedMachine;
 import com.prunoideae.probejs.document.parser.handler.ICallback;

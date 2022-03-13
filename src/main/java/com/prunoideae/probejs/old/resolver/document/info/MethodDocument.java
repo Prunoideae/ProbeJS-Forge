@@ -1,6 +1,6 @@
 package com.prunoideae.probejs.old.resolver.document.info;
 
-import com.prunoideae.probejs.document.parser.processor.StringUtil;
+import com.prunoideae.probejs.old.resolver.StringUtil;
 import com.prunoideae.probejs.old.resolver.document.Document;
 import com.prunoideae.probejs.old.toucher.ClassInfo;
 

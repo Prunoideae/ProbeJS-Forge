@@ -6,10 +6,10 @@ import com.prunoideae.probejs.document.comment.CommentHandler;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class CommentDocument {
+public class DocumentComment implements IDecorative {
     private final List<String> documentText;
 
-    public CommentDocument(List<String> documentText) {
+    public DocumentComment(List<String> documentText) {
         this.documentText = documentText.stream().map(String::strip).collect(Collectors.toList());
     }
 

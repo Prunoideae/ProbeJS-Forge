@@ -1,12 +1,12 @@
 package com.prunoideae.probejs.formatter.formatter;
 
-import com.prunoideae.probejs.document.FieldDocument;
+import com.prunoideae.probejs.document.DocumentField;
 import com.prunoideae.probejs.document.IDocumented;
 import com.prunoideae.probejs.info.FieldInfo;
 
 import java.util.List;
 
-public class FieldFormatter implements IDocumented<FieldDocument>, IFormatter {
+public class FieldFormatter implements IDocumented<DocumentField>, IFormatter {
     private final FieldInfo fieldInfo;
 
     public FieldFormatter(FieldInfo fieldInfo) {
@@ -14,7 +14,7 @@ public class FieldFormatter implements IDocumented<FieldDocument>, IFormatter {
     }
 
     @Override
-    public void setDocument(FieldDocument document) {
+    public void setDocument(DocumentField document) {
 
     }
 

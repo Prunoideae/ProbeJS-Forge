@@ -1,12 +1,12 @@
 package com.prunoideae.probejs.formatter.formatter;
 
-import com.prunoideae.probejs.document.ClassDocument;
+import com.prunoideae.probejs.document.DocumentClass;
 import com.prunoideae.probejs.document.IDocumented;
 import com.prunoideae.probejs.info.ClassInfo;
 
 import java.util.List;
 
-public class ClassFormatter implements IDocumented<ClassDocument>, IFormatter {
+public class ClassFormatter implements IDocumented<DocumentClass>, IFormatter {
     private final ClassInfo classInfo;
 
     public ClassFormatter(ClassInfo classInfo) {
@@ -14,7 +14,7 @@ public class ClassFormatter implements IDocumented<ClassDocument>, IFormatter {
     }
 
     @Override
-    public void setDocument(ClassDocument document) {
+    public void setDocument(DocumentClass document) {
 
     }
 

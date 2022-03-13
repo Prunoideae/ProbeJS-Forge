@@ -1,4 +1,4 @@
 package com.prunoideae.probejs.document;
 
-public class MethodDocument {
+public interface IDocument {
 }
