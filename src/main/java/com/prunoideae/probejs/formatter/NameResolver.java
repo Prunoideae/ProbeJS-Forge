@@ -1,7 +1,5 @@
 package com.prunoideae.probejs.formatter;
 
-import com.mojang.datafixers.types.Func;
-
 import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.function.Function;

@@ -12,7 +12,7 @@ public class ProviderComment implements IStateHandler<String>, IDocumentProvider
     @Override
     public void trial(String element, List<IStateHandler<String>> stack) {
         comments.add(element);
-        if (element.strip().startsWith("*/"))
+        if (element.strip().endsWith("*/"))
             stack.remove(this);
     }
 

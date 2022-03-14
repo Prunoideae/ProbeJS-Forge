@@ -16,11 +16,11 @@ public class DocumentHandler implements IStateHandler<String> {
     public static List<Pair<Predicate<String>, BiFunction<String, DocumentHandler, IStateHandler<String>>>> handlers = new ArrayList<>();
     private final List<IDocumentProvider<?>> elements = new ArrayList<>();
 
-    public void addMultiHandler(Predicate<String> condition, BiFunction<String, DocumentHandler, IStateHandler<String>> handler) {
+    public static void addMultiHandler(Predicate<String> condition, BiFunction<String, DocumentHandler, IStateHandler<String>> handler) {
         handlers.add(new Pair<>(condition, handler));
     }
 
-    public void addSingleHandler(Predicate<String> condition, BiConsumer<String, DocumentHandler> handler) {
+    public static void addSingleHandler(Predicate<String> condition, BiConsumer<String, DocumentHandler> handler) {
         handlers.add(new Pair<>(condition, (s, documentHandler) -> {
             handler.accept(s, documentHandler);
             return null;
@@ -52,7 +52,7 @@ public class DocumentHandler implements IStateHandler<String> {
 
     @Override
     public void trial(String element, List<IStateHandler<String>> stack) {
-
+        element = element.strip();
         for (Pair<Predicate<String>, BiFunction<String, DocumentHandler, IStateHandler<String>>> multiHandler : handlers) {
             if (multiHandler.getFirst().test(element)) {
                 IStateHandler<String> layer = multiHandler.getSecond().apply(element, this);

@@ -1,5 +1,6 @@
 package com.prunoideae.probejs;
 
+import com.prunoideae.probejs.document.type.Resolver;
 import dev.architectury.event.events.common.CommandRegistrationEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.apache.logging.log4j.LogManager;

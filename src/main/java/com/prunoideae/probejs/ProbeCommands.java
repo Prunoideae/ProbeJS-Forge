@@ -5,6 +5,9 @@ import com.google.gson.JsonObject;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.prunoideae.probejs.compiler.SnippetCompiler;
+import com.prunoideae.probejs.document.Manager;
+import com.prunoideae.probejs.document.comment.CommentHandler;
+import com.prunoideae.probejs.document.parser.processor.DocumentProviderHandler;
 import com.prunoideae.probejs.old.resolver.document.DocumentManager;
 import com.prunoideae.probejs.old.typings.ProbeCompiler;
 import com.prunoideae.probejs.old.typings.SpecialFormatters;
@@ -30,6 +33,10 @@ public class ProbeCommands {
                                 .requires(source -> source.getServer().isSingleplayer() || source.hasPermission(2))
                                 .executes(context -> {
                                     try {
+                                        DocumentProviderHandler.init();
+                                        CommentHandler.init();
+                                        Manager.init();
+
                                         DocumentManager.init();
                                         export(context.getSource());
                                         SnippetCompiler.fromKubeDump();

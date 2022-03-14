@@ -16,12 +16,13 @@ import java.util.function.Predicate;
 public class ProviderClass implements IStateHandler<String>, IDocumentProvider<DocumentClass> {
     public static List<Pair<Predicate<String>, BiFunction<String, ProviderClass, IStateHandler<String>>>> handlers = new ArrayList<>();
     private final List<IDocumentProvider<?>> elements = new ArrayList<>();
+    private String name;
 
-    public void addMultiHandler(Predicate<String> condition, BiFunction<String, ProviderClass, IStateHandler<String>> handler) {
+    public static void addMultiHandler(Predicate<String> condition, BiFunction<String, ProviderClass, IStateHandler<String>> handler) {
         handlers.add(new Pair<>(condition, handler));
     }
 
-    public void addSingleHandler(Predicate<String> condition, BiConsumer<String, ProviderClass> handler) {
+    public static void addSingleHandler(Predicate<String> condition, BiConsumer<String, ProviderClass> handler) {
         handlers.add(new Pair<>(condition, (s, documentHandler) -> {
             handler.accept(s, documentHandler);
             return null;
@@ -34,13 +35,21 @@ public class ProviderClass implements IStateHandler<String>, IDocumentProvider<D
 
     @Override
     public void trial(String element, List<IStateHandler<String>> stack) {
-        // TODO: Add trial for head and tail
+        element = element.strip();
+        if (element.startsWith("class") && element.endsWith("{")) {
+            String[] elements = element.split(" ");
+            name = elements[1];
+        } else if (element.equals("}")) {
+            stack.remove(this);
+        }
 
         for (Pair<Predicate<String>, BiFunction<String, ProviderClass, IStateHandler<String>>> multiHandler : handlers) {
             if (multiHandler.getFirst().test(element)) {
                 IStateHandler<String> layer = multiHandler.getSecond().apply(element, this);
-                if (layer != null)
+                if (layer != null) {
+                    layer.trial(element, stack);
                     stack.add(layer);
+                }
                 return;
             }
         }
@@ -63,5 +72,9 @@ public class ProviderClass implements IStateHandler<String>, IDocumentProvider<D
             }
         }
         return document;
+    }
+
+    public String getName() {
+        return name;
     }
 }

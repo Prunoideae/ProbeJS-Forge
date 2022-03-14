@@ -1,5 +1,6 @@
 package com.prunoideae.probejs.document.parser.processor;
 
+import com.prunoideae.probejs.ProbeJS;
 import com.prunoideae.probejs.document.parser.handler.AbstractStackedMachine;
 
 public class Document extends AbstractStackedMachine<String> {
@@ -8,6 +9,12 @@ public class Document extends AbstractStackedMachine<String> {
     public Document() {
         document = new DocumentHandler();
         this.stack.add(document);
+    }
+
+    @Override
+    public void step(String element) {
+        super.step(element);
+        ProbeJS.LOGGER.info("Stepped on: %s".formatted(element));
     }
 
     public DocumentHandler getDocument() {
