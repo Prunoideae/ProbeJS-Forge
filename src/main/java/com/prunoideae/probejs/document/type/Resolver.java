@@ -1,8 +1,10 @@
 package com.prunoideae.probejs.document.type;
 
+import com.prunoideae.probejs.info.TypeInfo;
 import com.prunoideae.probejs.util.Pair;
 import com.prunoideae.probejs.util.StringUtil;
 
+import java.lang.reflect.ParameterizedType;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,5 +34,27 @@ public class Resolver {
             return new TypeParameterized(resolveType(rawType), params.stream().map(Resolver::resolveType).collect(Collectors.toList()));
         }
         return new TypeNamed(type);
+    }
+
+    public static boolean typeEquals(IType docType, TypeInfo param) {
+        if (docType instanceof TypeUnion || docType instanceof TypeIntersection)
+            return false;
+        if (docType instanceof TypeArray && param.isArray())
+            return typeEquals(((TypeArray) docType).getComponent(), param.getComponent());
+        if (docType instanceof TypeParameterized && param.isParameterized()) {
+            List<TypeInfo> paramInfo = param.getParameterizedInfo();
+            List<IType> paramDoc = ((TypeParameterized) docType).getParamTypes();
+            if (paramDoc.size() != paramInfo.size())
+                return false;
+            for (int i = 0; i < paramDoc.size(); i++) {
+                if (!typeEquals(paramDoc.get(i), paramInfo.get(i)))
+                    return false;
+            }
+            return typeEquals(((TypeParameterized) docType).getRawType(), new TypeInfo(param.getRawType()));
+        }
+        if (docType instanceof TypeNamed && (param.isVariable() || param.isClazz()))
+            return docType.getTypeName().equals(param.getTypeName());
+
+        return false;
     }
 }

@@ -13,6 +13,7 @@ public class CommentHandler {
         specialCommentHandler.put("@modify", CommentModify::new);
         specialCommentHandler.put("@remove", CommentRemove::new);
         specialCommentHandler.put("@target", CommentTarget::new);
-        specialCommentHandler.put("@assignable", CommentAssign::new);
+        specialCommentHandler.put("@assign", CommentAssign::new);
+        specialCommentHandler.put("@mod", CommentMod::new);
     }
 }

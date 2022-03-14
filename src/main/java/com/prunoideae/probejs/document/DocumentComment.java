@@ -2,12 +2,13 @@ package com.prunoideae.probejs.document;
 
 import com.prunoideae.probejs.document.comment.AbstractComment;
 import com.prunoideae.probejs.document.comment.CommentHandler;
+import com.prunoideae.probejs.formatter.formatter.IFormatter;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class DocumentComment implements IDecorative {
+public class DocumentComment implements IDecorative, IFormatter {
     private final List<String> documentText;
     private final HashMap<Class<? extends AbstractComment>, AbstractComment> abstractComments = new HashMap<>();
 
@@ -40,5 +41,10 @@ public class DocumentComment implements IDecorative {
                         ? !CommentHandler.specialCommentHandler.containsKey(text.substring(1).strip().split(" ")[0])
                         : !CommentHandler.specialCommentHandler.containsKey(text.split(" ")[0]))
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<String> format(Integer indent, Integer stepIndent) {
+        return getDocumentText().stream().map(s -> " ".repeat(indent) + s).collect(Collectors.toList());
     }
 }

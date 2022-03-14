@@ -12,6 +12,13 @@ public class TypeParameterized implements IType {
         this.paramTypes = paramTypes;
     }
 
+    public IType getRawType() {
+        return rawType;
+    }
+
+    public List<IType> getParamTypes() {
+        return paramTypes;
+    }
 
     @Override
     public String getTypeName() {

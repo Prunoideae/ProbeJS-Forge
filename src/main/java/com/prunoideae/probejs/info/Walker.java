@@ -2,6 +2,7 @@ package com.prunoideae.probejs.info;
 
 import java.lang.reflect.Type;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -35,12 +36,15 @@ public class Walker {
 
     private Set<Class<?>> walkType(TypeInfo type) {
         Set<Class<?>> result = new HashSet<>();
-        if (walkType) {
-
+        if (type.isParameterized() && walkType) {
+            type.getParameterizedInfo().forEach(info -> result.addAll(walkType(info)));
         }
         if (type.isClazz() || type.isParameterized() || type.isArray())
             result.add((Class<?>) type.getRawType());
+        if (type.isWildcard())
+            result.add((Class<?>) type.getWildcardBound().getRawType());
 
+        result.removeIf(Objects::isNull);
         return result;
     }
 
@@ -64,6 +68,7 @@ public class Walker {
                 });
 
         }
+        result.removeIf(Objects::isNull);
         return result;
     }
 

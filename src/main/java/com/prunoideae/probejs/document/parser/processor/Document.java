@@ -14,7 +14,6 @@ public class Document extends AbstractStackedMachine<String> {
     @Override
     public void step(String element) {
         super.step(element);
-        ProbeJS.LOGGER.info("Stepped on: %s".formatted(element));
     }
 
     public DocumentHandler getDocument() {

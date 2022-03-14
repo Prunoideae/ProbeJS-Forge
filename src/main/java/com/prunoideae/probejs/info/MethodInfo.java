@@ -15,6 +15,10 @@ public class MethodInfo {
         this.method = method;
     }
 
+    public String getName() {
+        return method.getName();
+    }
+
     public boolean isStatic() {
         return Modifier.isStatic(method.getModifiers());
     }

@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.prunoideae.probejs.compiler.SnippetCompiler;
+import com.prunoideae.probejs.compiler.TypingCompiler;
 import com.prunoideae.probejs.document.Manager;
 import com.prunoideae.probejs.document.comment.CommentHandler;
 import com.prunoideae.probejs.document.parser.processor.DocumentProviderHandler;
@@ -36,13 +37,14 @@ public class ProbeCommands {
                                         DocumentProviderHandler.init();
                                         CommentHandler.init();
                                         Manager.init();
+                                        TypingCompiler.compileGlobal();
 
-                                        DocumentManager.init();
-                                        export(context.getSource());
-                                        SnippetCompiler.fromKubeDump();
-                                        context.getSource().sendSuccess(new TextComponent("KubeJS registry snippets generated."), false);
-                                        SpecialFormatters.init();
-                                        ProbeCompiler.compileDeclarations();
+                                        //DocumentManager.init();
+                                        //export(context.getSource());
+                                        //SnippetCompiler.fromKubeDump();
+                                        //context.getSource().sendSuccess(new TextComponent("KubeJS registry snippets generated."), false);
+                                        //SpecialFormatters.init();
+                                        //ProbeCompiler.compileDeclarations();
                                     } catch (Exception e) {
                                         e.printStackTrace();
                                         context.getSource().sendSuccess(new TextComponent("Uncaught exception happened in wrapper, please report to the Github issue with complete latest.log."), false);

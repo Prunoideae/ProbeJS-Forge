@@ -3,8 +3,11 @@ package com.prunoideae.probejs.document;
 import com.prunoideae.probejs.document.parser.processor.IDocumentProvider;
 import com.prunoideae.probejs.document.type.IType;
 import com.prunoideae.probejs.document.type.Resolver;
+import com.prunoideae.probejs.formatter.formatter.IFormatter;
 
-public class DocumentField extends DocumentProperty implements IDocumentProvider<DocumentField> {
+import java.util.List;
+
+public class DocumentField extends DocumentProperty implements IDocumentProvider<DocumentField>, IFormatter {
     private final boolean isFinal;
     private final boolean isStatic;
     private final String name;
@@ -53,5 +56,10 @@ public class DocumentField extends DocumentProperty implements IDocumentProvider
     @Override
     public DocumentField provide() {
         return this;
+    }
+
+    @Override
+    public List<String> format(Integer indent, Integer stepIndent) {
+        return null;
     }
 }

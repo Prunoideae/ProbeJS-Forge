@@ -2,6 +2,7 @@ package com.prunoideae.probejs.document;
 
 import com.prunoideae.probejs.ProbeJS;
 import com.prunoideae.probejs.ProbePaths;
+import com.prunoideae.probejs.document.comment.CommentUtil;
 import com.prunoideae.probejs.document.parser.processor.Document;
 import dev.architectury.platform.Mod;
 import dev.architectury.platform.Platform;
@@ -20,6 +21,8 @@ import java.util.zip.ZipFile;
 
 public class Manager {
     public static List<DocumentClass> classDocuments = new ArrayList<>();
+    public static List<DocumentType> typeDocuments = new ArrayList<>();
+
 
     public static void fromPath(Document document) throws IOException {
         File[] files = ProbePaths.DOCS.toFile().listFiles();
@@ -72,13 +75,17 @@ public class Manager {
         }
 
         classDocuments.clear();
-        classDocuments.addAll(documentState
-                .getDocument()
-                .getDocuments()
-                .stream()
-                .filter(d -> d instanceof DocumentClass)
-                .map(d -> (DocumentClass) d)
-                .collect(Collectors.toList()));
-        ProbeJS.LOGGER.info(classDocuments);
+        typeDocuments.clear();
+
+        for (IDocument doc : documentState.getDocument().getDocuments()) {
+            if (doc instanceof DocumentClass) {
+                if (CommentUtil.isLoaded(((DocumentClass) doc).getComment()))
+                    classDocuments.add((DocumentClass) doc);
+            }
+            if (doc instanceof DocumentType) {
+                if (CommentUtil.isLoaded(((DocumentType) doc).getComment()))
+                    typeDocuments.add((DocumentType) doc);
+            }
+        }
     }
 }

@@ -3,15 +3,25 @@ package com.prunoideae.probejs.document;
 import com.prunoideae.probejs.document.parser.processor.IDocumentProvider;
 import com.prunoideae.probejs.document.type.IType;
 import com.prunoideae.probejs.document.type.Resolver;
+import com.prunoideae.probejs.formatter.formatter.IFormatter;
+import com.prunoideae.probejs.info.MethodInfo;
 import com.prunoideae.probejs.util.StringUtil;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
-public class DocumentMethod extends DocumentProperty implements IDocumentProvider<DocumentMethod> {
+public class DocumentMethod extends DocumentProperty implements IDocumentProvider<DocumentMethod>, IFormatter {
     @Override
     public DocumentMethod provide() {
         return this;
+    }
+
+    @Override
+    public List<String> format(Integer indent, Integer stepIndent) {
+        return null;
     }
 
     private static class DocumentParam {
@@ -77,5 +87,32 @@ public class DocumentMethod extends DocumentProperty implements IDocumentProvide
 
     public List<DocumentParam> getParams() {
         return params;
+    }
+
+    public boolean testMethod(MethodInfo methodInfo) {
+        if (methodInfo.isStatic() != isStatic)
+            return false;
+
+        if (!Objects.equals(methodInfo.getName(), name))
+            return false;
+
+        Map<String, MethodInfo.ParamInfo> params = new HashMap<>();
+        Map<String, DocumentParam> docParams = new HashMap<>();
+        methodInfo.getParams().forEach(p -> params.put(p.getName(), p));
+        this.params.forEach(p -> docParams.put(p.name, p));
+
+        if (!params.keySet().equals(docParams.keySet()))
+            return false;
+
+        if (!Resolver.typeEquals(returnType, methodInfo.getReturnType()))
+            return false;
+
+        for (Map.Entry<String, MethodInfo.ParamInfo> e : params.entrySet()) {
+            DocumentParam doc = docParams.get(e.getKey());
+            if (!Resolver.typeEquals(doc.getType(), e.getValue().getType()))
+                return false;
+        }
+
+        return true;
     }
 }
