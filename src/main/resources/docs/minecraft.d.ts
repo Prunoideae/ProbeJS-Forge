@@ -1,9 +1,12 @@
-@Target("dev.latvian.mods.kubejs.recipe.RecipeEventJS")
+/**
+* @target dev.latvian.mods.kubejs.recipe.RecipeEventJS
+*/
 class RecipeEventJS {
     /**
      * Holds all the recipes collected from documents.
+     * @returns Document.RecipeHolder
      */
-    readonly recipes: Document.RecipeHolder;
+    getRecipes(): java.util.Map<java.lang.String, java.lang.Object>;
 
     /**
      * Adds a smelting recipe to Minecraft.

@@ -1,5 +1,8 @@
 package com.prunoideae.probejs.info;
 
+import dev.latvian.mods.rhino.util.HideFromJS;
+import dev.latvian.mods.rhino.util.RemapForJS;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
@@ -16,7 +19,13 @@ public class MethodInfo {
     }
 
     public String getName() {
+        if (method.getAnnotation(RemapForJS.class) != null)
+            return method.getAnnotation(RemapForJS.class).value();
         return method.getName();
+    }
+
+    public boolean shouldHide() {
+        return method.getAnnotation(HideFromJS.class) != null;
     }
 
     public boolean isStatic() {
@@ -29,6 +38,10 @@ public class MethodInfo {
 
     public List<ParamInfo> getParams() {
         return Arrays.stream(method.getParameters()).map(ParamInfo::new).collect(Collectors.toList());
+    }
+
+    public List<TypeInfo> getTypeVariables() {
+        return Arrays.stream(method.getTypeParameters()).map(TypeInfo::new).collect(Collectors.toList());
     }
 
 

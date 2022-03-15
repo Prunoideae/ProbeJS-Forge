@@ -8,11 +8,16 @@ import java.util.List;
 
 public class DocumentClass implements IConcrete, IFormatter {
     private DocumentComment comment;
+    private String name;
     private final List<DocumentField> fields = new ArrayList<>();
     private final List<DocumentMethod> methods = new ArrayList<>();
 
     public DocumentComment getComment() {
         return comment;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public void acceptProperty(IDocument document) {
@@ -30,12 +35,23 @@ public class DocumentClass implements IConcrete, IFormatter {
         }
     }
 
+    public void merge(DocumentClass other) {
+        if (comment == null)
+            comment = other.getComment();
+        fields.addAll(other.getFields());
+        methods.addAll(other.getMethods());
+    }
+
     public List<DocumentField> getFields() {
         return fields;
     }
 
     public List<DocumentMethod> getMethods() {
         return methods;
+    }
+
+    public String getName() {
+        return name;
     }
 
     @Override
@@ -49,6 +65,11 @@ public class DocumentClass implements IConcrete, IFormatter {
 
     @Override
     public List<String> format(Integer indent, Integer stepIndent) {
-        return null;
+        List<String> formatted = new ArrayList<>();
+        formatted.add(" ".repeat(indent) + "class %s {".formatted(this.name));
+        getFields().forEach(f -> formatted.addAll(f.format(indent + stepIndent, stepIndent)));
+        getMethods().forEach(m -> formatted.addAll(m.format(indent + stepIndent, stepIndent)));
+        formatted.add(" ".repeat(indent) + "}");
+        return formatted;
     }
 }

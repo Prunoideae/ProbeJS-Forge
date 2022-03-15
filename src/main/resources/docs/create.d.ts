@@ -1,6 +1,7 @@
-
-@Mod("create")
-@Mod("kubejs_create")
+/**
+* @mod create
+* @mod kubejs_create
+*/
 class RecipeHolder {
     /**
      * All recipes from Create.
@@ -8,11 +9,21 @@ class RecipeHolder {
     readonly create: Document.CreateRecipes;
 }
 
+/**
+* @mod create
+* @mod kubejs_create
+*/
 type ItemStackOrFluid = dev.latvian.mods.kubejs.item.ItemStackJS | dev.latvian.mods.kubejs.fluid.FluidStackJS;
+/**
+* @mod create
+* @mod kubejs_create
+*/
 type IngredientOrFluid = dev.latvian.mods.kubejs.item.ingredient.IngredientJS | dev.latvian.mods.kubejs.fluid.FluidStackJS;
 
-@Mod("create")
-@Mod("kubejs_create")
+/**
+* @mod create
+* @mod kubejs_create
+*/
 class CreateRecipes {
     /**
      * Creates a recipe for Crushing Wheels.

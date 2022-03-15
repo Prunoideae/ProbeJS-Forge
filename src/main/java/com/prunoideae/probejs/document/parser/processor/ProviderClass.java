@@ -58,6 +58,7 @@ public class ProviderClass implements IStateHandler<String>, IDocumentProvider<D
     @Override
     public DocumentClass provide() {
         DocumentClass document = new DocumentClass();
+        document.setName(name);
         List<IDecorative> decos = new ArrayList<>();
         for (IDocumentProvider<?> provider : elements) {
             IDocument doc = provider.provide();

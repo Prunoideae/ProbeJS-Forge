@@ -3,6 +3,7 @@ package com.prunoideae.probejs.formatter.formatter;
 import com.prunoideae.probejs.document.DocumentComment;
 import com.prunoideae.probejs.document.DocumentField;
 import com.prunoideae.probejs.document.comment.special.CommentHidden;
+import com.prunoideae.probejs.formatter.NameResolver;
 import com.prunoideae.probejs.info.FieldInfo;
 
 import java.util.ArrayList;
@@ -18,7 +19,7 @@ public class FormatterField extends DocumentedFormatter<DocumentField> implement
     @Override
     public List<String> format(Integer indent, Integer stepIndent) {
         List<String> formatted = new ArrayList<>();
-        DocumentComment comment = document.getComment();
+        DocumentComment comment = document != null ? document.getComment() : null;
         if (comment != null) {
             if (comment.getSpecialComment(CommentHidden.class) != null)
                 return formatted;
@@ -31,8 +32,16 @@ public class FormatterField extends DocumentedFormatter<DocumentField> implement
             elements.add("readonly");
         elements.add(fieldInfo.getName());
         elements.add(":");
-        elements.add(new FormatterType(fieldInfo.getType()).format(0, 0));
-        formatted.add(String.join(" ", elements) + ";");
+
+        if (document != null) {
+            elements.add(document.getType().getTypeName());
+        } else if (fieldInfo.isStatic() && NameResolver.formatValue(fieldInfo.getStaticValue()) != null)
+            elements.add(NameResolver.formatValue(fieldInfo.getStaticValue()));
+        else
+            elements.add(new FormatterType(fieldInfo.getType()).format(0, 0));
+
+        formatted.add(" ".repeat(indent) + String.join(" ", elements) + ";");
         return formatted;
     }
+
 }

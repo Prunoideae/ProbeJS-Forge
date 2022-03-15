@@ -80,7 +80,7 @@ public class SnippetCompiler {
 
     }
 
-    public static void fromKubeDump() throws IOException {
+    public static void compile() throws IOException {
         Path kubePath = KubeJSPaths.EXPORTED.resolve("kubejs-server-export.json");
         if (kubePath.toFile().canRead()) {
             Path codePath = KubeJSPaths.DIRECTORY.resolve(".vscode");

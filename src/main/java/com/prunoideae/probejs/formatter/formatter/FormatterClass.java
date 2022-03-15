@@ -7,11 +7,10 @@ import com.prunoideae.probejs.document.DocumentMethod;
 import com.prunoideae.probejs.document.comment.special.CommentHidden;
 import com.prunoideae.probejs.formatter.NameResolver;
 import com.prunoideae.probejs.info.ClassInfo;
+import com.prunoideae.probejs.info.TypeInfo;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.lang.reflect.TypeVariable;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class FormatterClass extends DocumentedFormatter<DocumentClass> implements IFormatter {
@@ -30,7 +29,7 @@ public class FormatterClass extends DocumentedFormatter<DocumentClass> implement
     @Override
     public List<String> format(Integer indent, Integer stepIndent) {
         List<String> formatted = new ArrayList<>();
-        DocumentComment comment = document.getComment();
+        DocumentComment comment = document == null ? null : document.getComment();
         if (comment != null) {
             if (comment.getSpecialComment(CommentHidden.class) != null)
                 return formatted;
@@ -45,13 +44,16 @@ public class FormatterClass extends DocumentedFormatter<DocumentClass> implement
             firstLine.add("class");
 
         firstLine.add(NameResolver.getResolvedName(classInfo.getClazz().getName()).getLastName());
+        if (classInfo.getClazz().getTypeParameters().length != 0) {
+            firstLine.add("<%s>".formatted(Arrays.stream(classInfo.getClazz().getTypeParameters()).map(TypeVariable::getName).collect(Collectors.joining(", "))));
+        }
         if (classInfo.getSuperClass() != null) {
             firstLine.add("extends");
-            firstLine.add(NameResolver.getResolvedName(classInfo.getSuperClass().getClazz().getName()).getFullName());
+            firstLine.add(new FormatterType(new TypeInfo(classInfo.getClazz().getGenericSuperclass()), false).format(0, 0));
         }
         if (!classInfo.getInterfaces().isEmpty()) {
             firstLine.add("implements");
-            firstLine.add("%s".formatted(classInfo.getInterfaces().stream().map(i -> NameResolver.getResolvedName(i.getClazz().getName()).getFullName()).collect(Collectors.joining(", "))));
+            firstLine.add("%s".formatted(Arrays.stream(classInfo.getClazz().getGenericInterfaces()).map(TypeInfo::new).map(i -> new FormatterType(i, false)).map(f -> f.format(0, 0)).collect(Collectors.joining(", "))));
         }
         firstLine.add("{");
         formatted.add(" ".repeat(indent) + String.join(" ", firstLine));
@@ -60,6 +62,12 @@ public class FormatterClass extends DocumentedFormatter<DocumentClass> implement
         fieldFormatters.entrySet().stream().filter(e -> !methodFormatters.containsKey(e.getKey())).forEach(f -> formatted.addAll(f.getValue().format(indent + stepIndent, stepIndent)));
 
         // beans
+        methodFormatters.values().forEach(ml -> ml.forEach(m -> {
+            String beanName = m.getBean();
+            if (beanName != null && Character.isAlphabetic(beanName.charAt(0)))
+                if (!fieldFormatters.containsKey(beanName) && !methodFormatters.containsKey(beanName))
+                    formatted.addAll(m.formatBean(indent + stepIndent, stepIndent));
+        }));
 
         // additions
         fieldAdditions.forEach(fieldDoc -> formatted.addAll(fieldDoc.format(indent + stepIndent, stepIndent)));

@@ -5,6 +5,7 @@ import com.prunoideae.probejs.document.type.IType;
 import com.prunoideae.probejs.document.type.Resolver;
 import com.prunoideae.probejs.formatter.formatter.IFormatter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class DocumentField extends DocumentProperty implements IDocumentProvider<DocumentField>, IFormatter {
@@ -60,6 +61,17 @@ public class DocumentField extends DocumentProperty implements IDocumentProvider
 
     @Override
     public List<String> format(Integer indent, Integer stepIndent) {
-        return null;
+        List<String> formatted = new ArrayList<>();
+        if (comment != null)
+            formatted.addAll(comment.format(indent, stepIndent));
+        List<String> pre = new ArrayList<>();
+        if (isStatic)
+            pre.add("static");
+        if (isFinal)
+            pre.add("readonly");
+        pre.add("%s: %s;".formatted(name, type.getTypeName()));
+        formatted.add(" ".repeat(indent) + String.join(" ", pre));
+
+        return formatted;
     }
 }

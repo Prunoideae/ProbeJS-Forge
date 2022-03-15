@@ -3,6 +3,7 @@ package com.prunoideae.probejs.document;
 import com.prunoideae.probejs.ProbeJS;
 import com.prunoideae.probejs.ProbePaths;
 import com.prunoideae.probejs.document.comment.CommentUtil;
+import com.prunoideae.probejs.document.comment.special.CommentTarget;
 import com.prunoideae.probejs.document.parser.processor.Document;
 import dev.architectury.platform.Mod;
 import dev.architectury.platform.Platform;
@@ -11,16 +12,14 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 public class Manager {
-    public static List<DocumentClass> classDocuments = new ArrayList<>();
+    public static Map<String, List<DocumentClass>> classDocuments = new HashMap<>();
+    public static Map<String, List<DocumentClass>> classAdditions = new HashMap<>();
     public static List<DocumentType> typeDocuments = new ArrayList<>();
 
 
@@ -75,13 +74,24 @@ public class Manager {
         }
 
         classDocuments.clear();
+        classAdditions.clear();
         typeDocuments.clear();
 
         for (IDocument doc : documentState.getDocument().getDocuments()) {
-            if (doc instanceof DocumentClass) {
-                if (CommentUtil.isLoaded(((DocumentClass) doc).getComment()))
-                    classDocuments.add((DocumentClass) doc);
+            if (doc instanceof DocumentClass classDoc) {
+                if (CommentUtil.isLoaded(classDoc.getComment())) {
+                    DocumentComment comment = classDoc.getComment();
+                    if (comment != null) {
+                        CommentTarget target = (CommentTarget) comment.getSpecialComment(CommentTarget.class);
+                        if (target != null) {
+                            classDocuments.computeIfAbsent(target.getTargetName(), s -> new ArrayList<>()).add(classDoc);
+                            continue;
+                        }
+                    }
+                    classAdditions.computeIfAbsent(classDoc.getName(), s -> new ArrayList<>()).add(classDoc);
+                }
             }
+
             if (doc instanceof DocumentType) {
                 if (CommentUtil.isLoaded(((DocumentType) doc).getComment()))
                     typeDocuments.add((DocumentType) doc);

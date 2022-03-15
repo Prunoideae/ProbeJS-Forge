@@ -1,5 +1,8 @@
 package com.prunoideae.probejs.info;
 
+import dev.latvian.mods.rhino.util.HideFromJS;
+import dev.latvian.mods.rhino.util.RemapForJS;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.function.Consumer;
@@ -20,7 +23,13 @@ public class FieldInfo {
     }
 
     public String getName() {
+        if (field.getAnnotation(RemapForJS.class) != null)
+            return field.getAnnotation(RemapForJS.class).value();
         return this.field.getName();
+    }
+
+    public boolean shouldHide() {
+        return field.getAnnotation(HideFromJS.class) != null;
     }
 
     public TypeInfo getType() {

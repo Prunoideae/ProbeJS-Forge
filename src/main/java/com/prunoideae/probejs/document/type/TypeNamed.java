@@ -9,6 +9,10 @@ public class TypeNamed implements IType {
         this.typeName = typeName;
     }
 
+    public String getRawTypeName() {
+        return typeName;
+    }
+
     @Override
     public String getTypeName() {
         NameResolver.ResolvedName resolved = NameResolver.resolvedNames.get(typeName);

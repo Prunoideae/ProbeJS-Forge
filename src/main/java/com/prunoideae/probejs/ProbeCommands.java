@@ -9,9 +9,8 @@ import com.prunoideae.probejs.compiler.TypingCompiler;
 import com.prunoideae.probejs.document.Manager;
 import com.prunoideae.probejs.document.comment.CommentHandler;
 import com.prunoideae.probejs.document.parser.processor.DocumentProviderHandler;
-import com.prunoideae.probejs.old.resolver.document.DocumentManager;
-import com.prunoideae.probejs.old.typings.ProbeCompiler;
-import com.prunoideae.probejs.old.typings.SpecialFormatters;
+import com.prunoideae.probejs.formatter.ClassResolver;
+import com.prunoideae.probejs.formatter.NameResolver;
 import dev.latvian.mods.kubejs.KubeJSPaths;
 import dev.latvian.mods.kubejs.server.ServerSettings;
 import net.minecraft.commands.CommandSourceStack;
@@ -34,17 +33,14 @@ public class ProbeCommands {
                                 .requires(source -> source.getServer().isSingleplayer() || source.hasPermission(2))
                                 .executes(context -> {
                                     try {
+                                        export(context.getSource());
+                                        SnippetCompiler.compile();
                                         DocumentProviderHandler.init();
                                         CommentHandler.init();
                                         Manager.init();
-                                        TypingCompiler.compileGlobal();
-
-                                        //DocumentManager.init();
-                                        //export(context.getSource());
-                                        //SnippetCompiler.fromKubeDump();
-                                        //context.getSource().sendSuccess(new TextComponent("KubeJS registry snippets generated."), false);
-                                        //SpecialFormatters.init();
-                                        //ProbeCompiler.compileDeclarations();
+                                        ClassResolver.init();
+                                        NameResolver.init();
+                                        TypingCompiler.compile();
                                     } catch (Exception e) {
                                         e.printStackTrace();
                                         context.getSource().sendSuccess(new TextComponent("Uncaught exception happened in wrapper, please report to the Github issue with complete latest.log."), false);

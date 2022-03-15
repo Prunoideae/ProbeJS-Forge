@@ -7,10 +7,7 @@ import com.prunoideae.probejs.formatter.formatter.IFormatter;
 import com.prunoideae.probejs.info.MethodInfo;
 import com.prunoideae.probejs.util.StringUtil;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class DocumentMethod extends DocumentProperty implements IDocumentProvider<DocumentMethod>, IFormatter {
@@ -21,7 +18,11 @@ public class DocumentMethod extends DocumentProperty implements IDocumentProvide
 
     @Override
     public List<String> format(Integer indent, Integer stepIndent) {
-        return null;
+        List<String> formatted = new ArrayList<>();
+        if (comment != null)
+            formatted.addAll(comment.format(indent, stepIndent));
+        formatted.add(" ".repeat(indent) + "%s%s(%s): %s;".formatted(isStatic ? "static " : "", name, getParams().stream().map(p -> "%s: %s".formatted(p.name, p.type.getTypeName())).collect(Collectors.joining(", ")), returnType.getTypeName()));
+        return formatted;
     }
 
     private static class DocumentParam {
@@ -55,7 +56,6 @@ public class DocumentMethod extends DocumentProperty implements IDocumentProvide
         } else {
             isStatic = false;
         }
-        System.out.println(line);
         int nameIndex = line.indexOf("(");
         int methodIndex = line.indexOf(")");
 

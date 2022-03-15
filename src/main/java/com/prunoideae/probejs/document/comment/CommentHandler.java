@@ -11,9 +11,9 @@ public class CommentHandler {
     public static void init() {
         specialCommentHandler.put("@hidden", CommentHidden::new);
         specialCommentHandler.put("@modify", CommentModify::new);
-        specialCommentHandler.put("@remove", CommentRemove::new);
         specialCommentHandler.put("@target", CommentTarget::new);
         specialCommentHandler.put("@assign", CommentAssign::new);
         specialCommentHandler.put("@mod", CommentMod::new);
+        specialCommentHandler.put("@returns", CommentReturns::new);
     }
 }

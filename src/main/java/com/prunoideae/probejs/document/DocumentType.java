@@ -1,10 +1,12 @@
 package com.prunoideae.probejs.document;
 
+import com.prunoideae.probejs.document.comment.CommentUtil;
 import com.prunoideae.probejs.document.parser.processor.IDocumentProvider;
 import com.prunoideae.probejs.document.type.IType;
 import com.prunoideae.probejs.document.type.Resolver;
 import com.prunoideae.probejs.formatter.formatter.IFormatter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class DocumentType implements IDocumentProvider<DocumentType>, IFormatter, IConcrete {
@@ -18,7 +20,7 @@ public class DocumentType implements IDocumentProvider<DocumentType>, IFormatter
         line = line.strip().substring(4).strip();
         if (line.endsWith(";"))
             line = line.substring(0, line.length() - 1);
-        String[] nameType = line.split(" ");
+        String[] nameType = line.split("=");
         name = nameType[0].strip();
         type = Resolver.resolveType(nameType[1].strip());
     }
@@ -30,6 +32,8 @@ public class DocumentType implements IDocumentProvider<DocumentType>, IFormatter
 
     @Override
     public List<String> format(Integer indent, Integer stepIndent) {
+        if (!CommentUtil.isLoaded(comment) || CommentUtil.isHidden(comment))
+            return new ArrayList<>();
         return List.of(" ".repeat(indent) + "type %s = %s;".formatted(name, type.getTypeName()));
     }
 

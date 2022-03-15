@@ -53,7 +53,7 @@ public class Resolver {
             return typeEquals(((TypeParameterized) docType).getRawType(), new TypeInfo(param.getRawType()));
         }
         if (docType instanceof TypeNamed && (param.isVariable() || param.isClazz()))
-            return docType.getTypeName().equals(param.getTypeName());
+            return ((TypeNamed) docType).getRawTypeName().equals(param.getTypeName());
 
         return false;
     }

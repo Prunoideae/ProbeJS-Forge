@@ -1,4 +1,6 @@
-@Mod("integrateddynamics")
+/**
+* @mod integrateddynamics
+*/
 class RecipeHolder {
     /**
      * The builtin support for Integrated Dynamics is not complete in KubeJS.
@@ -8,7 +10,9 @@ class RecipeHolder {
     readonly integrateddynamics: Document.IntegratedDynamicsRecipes;
 }
 
-@Mod("integrateddynamics")
+/**
+* @mod integrateddynamics
+*/
 class IntegratedDynamicsRecipes {
     /**
      * Adds a recipe of Squeezer.
