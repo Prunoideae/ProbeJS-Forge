@@ -63,11 +63,12 @@ public class ProbeCommands {
                                     }
                                     return Command.SINGLE_SUCCESS;
                                 }))
-                        .then(Commands.literal("recipe_stub")
-                                .executes(context -> {
-                                    //TODO: add features for exporting stub of recipes
+                        .then(Commands.literal("configure")
+                                .then(Commands.literal("bean_method").executes(context -> {
+                                    ProbeConfig.dumpMethod = !ProbeConfig.dumpMethod;
+                                    context.getSource().sendSuccess(new TextComponent("Keep method while beaning set to: %s".formatted(ProbeConfig.dumpMethod)), false);
                                     return Command.SINGLE_SUCCESS;
-                                }))
+                                })))
         );
     }
 

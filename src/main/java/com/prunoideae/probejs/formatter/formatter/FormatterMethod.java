@@ -103,7 +103,7 @@ public class FormatterMethod extends DocumentedFormatter<DocumentMethod> impleme
         if (methodInfo.getTypeVariables().size() != 0)
             sb.append("<%s>".formatted(methodInfo.getTypeVariables().stream().map(TypeInfo::getTypeName).collect(Collectors.joining(", "))));
         sb.append("(%s)".formatted(formatParams(paramModifiers)));
-        sb.append(": %s".formatted(returnModifier == null ? formatReturn() : returnModifier.getTypeName()));
+        sb.append(": %s;".formatted(returnModifier == null ? formatReturn() : returnModifier.getTypeName()));
 
         formatted.add(" ".repeat(indent) + sb);
         return formatted;

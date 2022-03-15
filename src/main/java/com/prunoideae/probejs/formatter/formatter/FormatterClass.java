@@ -1,5 +1,6 @@
 package com.prunoideae.probejs.formatter.formatter;
 
+import com.prunoideae.probejs.ProbeConfig;
 import com.prunoideae.probejs.document.DocumentClass;
 import com.prunoideae.probejs.document.DocumentComment;
 import com.prunoideae.probejs.document.DocumentField;
@@ -57,8 +58,9 @@ public class FormatterClass extends DocumentedFormatter<DocumentClass> implement
         }
         firstLine.add("{");
         formatted.add(" ".repeat(indent) + String.join(" ", firstLine));
+
         // Fields, methods
-        methodFormatters.values().forEach(m -> m.forEach(mf -> formatted.addAll(mf.format(indent + stepIndent, stepIndent))));
+        methodFormatters.values().forEach(m -> m.stream().filter(mf -> ProbeConfig.dumpMethod || (mf.getBean() == null || fieldFormatters.containsKey(mf.getBean()) || methodFormatters.containsKey(mf.getBean()))).forEach(mf -> formatted.addAll(mf.format(indent + stepIndent, stepIndent))));
         fieldFormatters.entrySet().stream().filter(e -> !methodFormatters.containsKey(e.getKey())).forEach(f -> formatted.addAll(f.getValue().format(indent + stepIndent, stepIndent)));
 
         // beans
