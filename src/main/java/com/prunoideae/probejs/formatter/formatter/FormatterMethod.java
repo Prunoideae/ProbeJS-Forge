@@ -57,8 +57,17 @@ public class FormatterMethod extends DocumentedFormatter<DocumentMethod> impleme
         return new Pair<>(modifiers, returns);
     }
 
+    private String formatTypeParameterized(TypeInfo info) {
+        StringBuilder sb = new StringBuilder(new FormatterType(info).format(0, 0));
+        if (info.isClazz() && info.getRawType() instanceof Class<?> clazz) {
+            if (clazz.getTypeParameters().length != 0)
+                sb.append("<%s>".formatted(String.join(", ", Collections.nCopies(clazz.getTypeParameters().length, "any"))));
+        }
+        return sb.toString();
+    }
+
     private String formatReturn() {
-        return new FormatterType(methodInfo.getReturnType()).format(0, 0);
+        return formatTypeParameterized(methodInfo.getReturnType());
     }
 
     private String formatParams(Map<String, IType> modifiers) {
@@ -68,7 +77,7 @@ public class FormatterMethod extends DocumentedFormatter<DocumentMethod> impleme
             if (modifiers.containsKey(param.getName()))
                 paramStrings.add("%s: %s".formatted(NameResolver.getNameSafe(param.getName()), modifiers.get(param.getName()).getTypeName()));
             else
-                paramStrings.add("%s: %s".formatted(NameResolver.getNameSafe(param.getName()), new FormatterType(param.getType()).format(0, 0)));
+                paramStrings.add("%s: %s".formatted(NameResolver.getNameSafe(param.getName()), formatTypeParameterized(param.getType())));
         }
         return String.join(", ", paramStrings);
     }
