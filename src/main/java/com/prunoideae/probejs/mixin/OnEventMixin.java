@@ -1,23 +1,19 @@
 package com.prunoideae.probejs.mixin;
 
 import com.prunoideae.probejs.plugin.WrappedEventHandler;
-import dev.latvian.mods.kubejs.BuiltinKubeJSPlugin;
+import dev.latvian.mods.kubejs.event.EventsJS;
 import dev.latvian.mods.kubejs.event.IEventHandler;
-import dev.latvian.mods.kubejs.script.BindingsEvent;
-import dev.latvian.mods.kubejs.util.ListJS;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Overwrite;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
-@Mixin(BuiltinKubeJSPlugin.class)
+@Mixin(EventsJS.class)
 public class OnEventMixin {
 
-    @Overwrite(remap = false)
-    private static Object onEvent(BindingsEvent event, Object[] args) {
-        for (Object o : ListJS.orSelf(args[0])) {
-            String e = String.valueOf(o);
-            event.type.manager.get().events.listen(e, new WrappedEventHandler(e, (IEventHandler) args[1]));
-
-        }
-        return null;
+    @ModifyVariable(method = "listen", argsOnly = true, at = @At("HEAD"), remap = false)
+    private IEventHandler listen(IEventHandler handler, String id) {
+        if (!(handler instanceof WrappedEventHandler))
+            return new WrappedEventHandler(id, handler);
+        return handler;
     }
 }

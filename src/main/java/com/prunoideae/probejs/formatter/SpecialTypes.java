@@ -1,7 +1,6 @@
 package com.prunoideae.probejs.formatter;
 
 import com.prunoideae.probejs.formatter.formatter.FormatterType;
-import com.prunoideae.probejs.info.TypeInfo;
 
 import java.util.function.*;
 
