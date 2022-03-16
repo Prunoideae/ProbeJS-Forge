@@ -12,8 +12,8 @@ public class CommentModify extends AbstractComment {
         super(line);
         String sub = line.substring(8);
         int idx = sub.indexOf(" ");
-        name = line.substring(0, idx).strip();
-        type = Resolver.resolveType(line.substring(idx + 1));
+        name = sub.substring(0, idx).strip();
+        type = Resolver.resolveType(sub.substring(idx + 1));
     }
 
     public String getName() {

@@ -15,5 +15,6 @@ public class CommentHandler {
         specialCommentHandler.put("@assign", CommentAssign::new);
         specialCommentHandler.put("@mod", CommentMod::new);
         specialCommentHandler.put("@returns", CommentReturns::new);
+        specialCommentHandler.put("@rename", CommentRename::new);
     }
 }

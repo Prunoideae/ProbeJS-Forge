@@ -3,6 +3,8 @@ package com.prunoideae.probejs.info;
 import com.prunoideae.probejs.formatter.ClassResolver;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -18,6 +20,10 @@ public class ClassInfo {
 
     public boolean isInterface() {
         return clazz.isInterface();
+    }
+
+    public boolean isAbstract() {
+        return Modifier.isAbstract(clazz.getModifiers());
     }
 
     public Class<?> getClazz() {
@@ -42,12 +48,27 @@ public class ClassInfo {
                 .collect(Collectors.toList());
     }
 
+    public List<ConstructorInfo> getConstructorInfo() {
+        return Arrays.stream(clazz.getConstructors()).map(ConstructorInfo::new).collect(Collectors.toList());
+    }
+
+    private Set<Method> getAllSuperMethods() {
+        Set<Method> methods = new HashSet<>();
+        if (!clazz.isInterface()) {
+            if (clazz.getSuperclass() != null)
+                methods.addAll(List.of(clazz.getSuperclass().getMethods()));
+        } else {
+            for (Class<?> c : clazz.getInterfaces()) {
+                methods.addAll(List.of(c.getMethods()));
+            }
+        }
+        return methods;
+    }
+
     public List<MethodInfo> getMethodInfo() {
-        Set<Method> m = new HashSet<>();
-        if (clazz.getSuperclass() != null)
-            m.addAll(List.of(clazz.getSuperclass().getMethods()));
+        Set<Method> m = getAllSuperMethods();
         return Arrays.stream(clazz.getMethods())
-                .filter(method -> !m.contains(method))
+                .filter(method -> !m.contains(method) || (!(method.getGenericReturnType() instanceof ParameterizedType) && Arrays.stream(method.getGenericParameterTypes()).noneMatch(t -> t instanceof ParameterizedType)))
                 .map(MethodInfo::new)
                 .filter(method -> ClassResolver.acceptMethod(method.getName()))
                 .filter(method -> !method.shouldHide())

@@ -20,11 +20,17 @@ public class FormatterClass extends DocumentedFormatter<DocumentClass> implement
     private final Map<String, List<FormatterMethod>> methodFormatters = new HashMap<>();
     private final List<DocumentField> fieldAdditions = new ArrayList<>();
     private final List<DocumentMethod> methodAdditions = new ArrayList<>();
+    private boolean internal = false;
+
 
     public FormatterClass(ClassInfo classInfo) {
         this.classInfo = classInfo;
         classInfo.getMethodInfo().forEach(methodInfo -> methodFormatters.computeIfAbsent(methodInfo.getName(), s -> new ArrayList<>()).add(new FormatterMethod(methodInfo)));
         classInfo.getFieldInfo().forEach(fieldInfo -> fieldFormatters.put(fieldInfo.getName(), new FormatterField(fieldInfo)));
+    }
+
+    public void setInternal(boolean internal) {
+        this.internal = internal;
     }
 
     @Override
@@ -39,6 +45,13 @@ public class FormatterClass extends DocumentedFormatter<DocumentClass> implement
 
         // First line
         List<String> firstLine = new ArrayList<>();
+
+        if (!internal)
+            firstLine.add("declare");
+
+        if (classInfo.isAbstract())
+            firstLine.add("abstract");
+
         if (classInfo.isInterface())
             firstLine.add("interface");
         else
@@ -60,8 +73,18 @@ public class FormatterClass extends DocumentedFormatter<DocumentClass> implement
         formatted.add(" ".repeat(indent) + String.join(" ", firstLine));
 
         // Fields, methods
-        methodFormatters.values().forEach(m -> m.stream().filter(mf -> ProbeConfig.dumpMethod || (mf.getBean() == null || fieldFormatters.containsKey(mf.getBean()) || methodFormatters.containsKey(mf.getBean()))).forEach(mf -> formatted.addAll(mf.format(indent + stepIndent, stepIndent))));
-        fieldFormatters.entrySet().stream().filter(e -> !methodFormatters.containsKey(e.getKey())).forEach(f -> formatted.addAll(f.getValue().format(indent + stepIndent, stepIndent)));
+        methodFormatters.values().forEach(m -> m.stream().filter(mf -> ProbeConfig.INSTANCE.dumpMethod || (mf.getBean() == null || fieldFormatters.containsKey(mf.getBean()) || methodFormatters.containsKey(mf.getBean()))).forEach(mf -> {
+            if (classInfo.isInterface() && mf.getMethodInfo().isStatic() && internal)
+                return;
+            mf.setInterface(classInfo.isInterface());
+            formatted.addAll(mf.format(indent + stepIndent, stepIndent));
+        }));
+        fieldFormatters.entrySet().stream().filter(e -> !methodFormatters.containsKey(e.getKey())).forEach(f -> {
+            if (classInfo.isInterface() && f.getValue().getFieldInfo().isStatic() && internal)
+                return;
+            f.getValue().setInterface(classInfo.isInterface());
+            formatted.addAll(f.getValue().format(indent + stepIndent, stepIndent));
+        });
 
         // beans
         methodFormatters.values().forEach(ml -> ml.forEach(m -> {
@@ -71,6 +94,15 @@ public class FormatterClass extends DocumentedFormatter<DocumentClass> implement
                     formatted.addAll(m.formatBean(indent + stepIndent, stepIndent));
         }));
 
+        // constructors
+        if (internal) {
+            formatted.add(" ".repeat(indent + stepIndent) + "/**");
+            formatted.add(" ".repeat(indent + stepIndent) + "* Internal constructor, this means that it's not valid and you will get an error if you use it.");
+            formatted.add(" ".repeat(indent + stepIndent) + "*/");
+            formatted.add(" ".repeat(indent + stepIndent) + "private constructor();");
+        } else {
+            classInfo.getConstructorInfo().stream().map(FormatterConstructor::new).forEach(f -> formatted.addAll(f.format(indent + stepIndent, stepIndent)));
+        }
         // additions
         fieldAdditions.forEach(fieldDoc -> formatted.addAll(fieldDoc.format(indent + stepIndent, stepIndent)));
         methodAdditions.forEach(methodDoc -> formatted.addAll(methodDoc.format(indent + stepIndent, stepIndent)));

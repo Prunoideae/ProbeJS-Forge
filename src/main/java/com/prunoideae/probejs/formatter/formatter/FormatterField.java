@@ -11,9 +11,14 @@ import java.util.List;
 
 public class FormatterField extends DocumentedFormatter<DocumentField> implements IFormatter {
     private final FieldInfo fieldInfo;
+    private boolean isInterface = false;
 
     public FormatterField(FieldInfo fieldInfo) {
         this.fieldInfo = fieldInfo;
+    }
+
+    public void setInterface(boolean anInterface) {
+        isInterface = anInterface;
     }
 
     @Override
@@ -26,7 +31,7 @@ public class FormatterField extends DocumentedFormatter<DocumentField> implement
             formatted.addAll(comment.format(indent, stepIndent));
         }
         List<String> elements = new ArrayList<>();
-        if (fieldInfo.isStatic())
+        if (fieldInfo.isStatic() && !isInterface)
             elements.add("static");
         if (fieldInfo.isFinal())
             elements.add("readonly");
@@ -44,4 +49,7 @@ public class FormatterField extends DocumentedFormatter<DocumentField> implement
         return formatted;
     }
 
+    public FieldInfo getFieldInfo() {
+        return fieldInfo;
+    }
 }

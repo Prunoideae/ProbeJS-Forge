@@ -1,7 +1,9 @@
 package com.prunoideae.probejs.compiler;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonIOException;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonSyntaxException;
 import com.prunoideae.probejs.ProbeJS;
 import com.prunoideae.probejs.ProbePaths;
 import com.prunoideae.probejs.document.DocumentClass;
@@ -35,18 +37,22 @@ public class TypingCompiler {
         Map<String, Class<?>> cachedEvents = new HashMap<>();
         Path cachedEventPath = KubeJSPaths.EXPORTED.resolve("cachedEvents.json");
         if (Files.exists(cachedEventPath)) {
-            Map<?, ?> cachedMap = new Gson().fromJson(Files.newBufferedReader(cachedEventPath), Map.class);
-            cachedMap.forEach((k, v) -> {
-                if (k instanceof String && v instanceof String) {
-                    try {
-                        Class<?> clazz = Class.forName((String) v);
-                        if (EventJS.class.isAssignableFrom(clazz))
-                            cachedEvents.put((String) k, clazz);
-                    } catch (ClassNotFoundException e) {
-                        ProbeJS.LOGGER.warn("Class %s was in the cache, but disappeared in packages now.".formatted(v));
+            try {
+                Map<?, ?> cachedMap = new Gson().fromJson(Files.newBufferedReader(cachedEventPath), Map.class);
+                cachedMap.forEach((k, v) -> {
+                    if (k instanceof String && v instanceof String) {
+                        try {
+                            Class<?> clazz = Class.forName((String) v);
+                            if (EventJS.class.isAssignableFrom(clazz))
+                                cachedEvents.put((String) k, clazz);
+                        } catch (ClassNotFoundException e) {
+                            ProbeJS.LOGGER.warn("Class %s was in the cache, but disappeared in packages now.".formatted(v));
+                        }
                     }
-                }
-            });
+                });
+            } catch (JsonSyntaxException | JsonIOException e) {
+                ProbeJS.LOGGER.warn("Cannot read malformed cache, ignoring.");
+            }
         }
         return cachedEvents;
     }
@@ -93,6 +99,7 @@ public class TypingCompiler {
                 if (clazz.isInterface())
                     writer.write("declare const %s: %s;".formatted(name.getFullName(), name.getFullName()) + "\n");
             } else {
+                formatter.setInternal(true);
                 namespaced.computeIfAbsent(name.getNamespace(), s -> new ArrayList<>()).add(formatter);
             }
         }

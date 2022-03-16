@@ -1,5 +1,6 @@
 package com.prunoideae.probejs.mixin;
 
+import com.prunoideae.probejs.ProbeConfig;
 import com.prunoideae.probejs.plugin.WrappedEventHandler;
 import dev.latvian.mods.kubejs.event.EventsJS;
 import dev.latvian.mods.kubejs.event.IEventHandler;
@@ -12,7 +13,7 @@ public class OnEventMixin {
 
     @ModifyVariable(method = "listen", argsOnly = true, at = @At("HEAD"), remap = false)
     private IEventHandler listen(IEventHandler handler, String id) {
-        if (!(handler instanceof WrappedEventHandler))
+        if (!(handler instanceof WrappedEventHandler) && !ProbeConfig.INSTANCE.disabled)
             return new WrappedEventHandler(id, handler);
         return handler;
     }

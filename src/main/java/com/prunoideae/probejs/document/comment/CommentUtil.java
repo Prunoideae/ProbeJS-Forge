@@ -4,6 +4,7 @@ import com.prunoideae.probejs.document.DocumentComment;
 import com.prunoideae.probejs.document.comment.special.CommentHidden;
 import com.prunoideae.probejs.document.comment.special.CommentMod;
 import com.prunoideae.probejs.document.comment.special.CommentModify;
+import com.prunoideae.probejs.document.comment.special.CommentRename;
 import com.prunoideae.probejs.document.type.IType;
 
 import java.util.HashMap;
@@ -35,5 +36,17 @@ public class CommentUtil {
             });
         }
         return modifiers;
+    }
+
+    public static Map<String, String> getRenames(DocumentComment comment) {
+        Map<String, String> renames = new HashMap<>();
+        if (comment != null) {
+            comment.getSpecialComments(CommentRename.class).forEach(m -> {
+                if (m instanceof CommentRename rename) {
+                    renames.put(rename.getName(), rename.getTo());
+                }
+            });
+        }
+        return renames;
     }
 }

@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 
 public class FormatterMethod extends DocumentedFormatter<DocumentMethod> implements IFormatter {
     private final MethodInfo methodInfo;
+    private boolean isInterface = false;
 
     private static String getCamelCase(String text) {
         return Character.toLowerCase(text.charAt(0)) + text.substring(1);
@@ -28,6 +29,9 @@ public class FormatterMethod extends DocumentedFormatter<DocumentMethod> impleme
         return methodInfo;
     }
 
+    public void setInterface(boolean anInterface) {
+        isInterface = anInterface;
+    }
 
     public String getBean() {
         String methodName = methodInfo.getName();
@@ -73,11 +77,16 @@ public class FormatterMethod extends DocumentedFormatter<DocumentMethod> impleme
     private String formatParams(Map<String, IType> modifiers) {
         List<MethodInfo.ParamInfo> params = methodInfo.getParams();
         List<String> paramStrings = new ArrayList<>();
+        Map<String, String> renames = new HashMap<>();
+        if (document != null)
+            renames.putAll(CommentUtil.getRenames(document.getComment()));
         for (MethodInfo.ParamInfo param : params) {
-            if (modifiers.containsKey(param.getName()))
-                paramStrings.add("%s: %s".formatted(NameResolver.getNameSafe(param.getName()), modifiers.get(param.getName()).getTypeName()));
+            String paramOriginal = param.getName();
+            String realName = renames.getOrDefault(paramOriginal, paramOriginal);
+            if (modifiers.containsKey(paramOriginal))
+                paramStrings.add("%s: %s".formatted(NameResolver.getNameSafe(realName), modifiers.get(paramOriginal).getTypeName()));
             else
-                paramStrings.add("%s: %s".formatted(NameResolver.getNameSafe(param.getName()), formatTypeParameterized(param.getType())));
+                paramStrings.add("%s: %s".formatted(NameResolver.getNameSafe(realName), formatTypeParameterized(param.getType())));
         }
         return String.join(", ", paramStrings);
     }
@@ -97,7 +106,7 @@ public class FormatterMethod extends DocumentedFormatter<DocumentMethod> impleme
         }
 
         StringBuilder sb = new StringBuilder();
-        if (methodInfo.isStatic())
+        if (methodInfo.isStatic() && !isInterface)
             sb.append("static ");
         sb.append(methodInfo.getName());
         if (methodInfo.getTypeVariables().size() != 0)

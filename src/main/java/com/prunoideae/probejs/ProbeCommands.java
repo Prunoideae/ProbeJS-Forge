@@ -64,11 +64,20 @@ public class ProbeCommands {
                                     return Command.SINGLE_SUCCESS;
                                 }))
                         .then(Commands.literal("configure")
-                                .then(Commands.literal("bean_method").executes(context -> {
-                                    ProbeConfig.dumpMethod = !ProbeConfig.dumpMethod;
-                                    context.getSource().sendSuccess(new TextComponent("Keep method while beaning set to: %s".formatted(ProbeConfig.dumpMethod)), false);
+                                .then(Commands.literal("toggle_bean").executes(context -> {
+                                    ProbeConfig.INSTANCE.dumpMethod = !ProbeConfig.INSTANCE.dumpMethod;
+                                    context.getSource().sendSuccess(new TextComponent("Keep method while beaning set to: %s".formatted(ProbeConfig.INSTANCE.dumpMethod)), false);
+                                    ProbeConfig.INSTANCE.save();
                                     return Command.SINGLE_SUCCESS;
-                                })))
+                                }))
+                                .then(Commands.literal("toggle_mixin").executes(context -> {
+                                    ProbeConfig.INSTANCE.disabled = !ProbeConfig.INSTANCE.disabled;
+                                    context.getSource().sendSuccess(new TextComponent("OnEvent mixin wrapper set to: %s".formatted(ProbeConfig.INSTANCE.disabled ? "disabled" : "enabled")), false);
+                                    ProbeConfig.INSTANCE.save();
+                                    context.getSource().sendSuccess(new TextComponent("Changes will be applied next time you start the game."), false);
+                                    return Command.SINGLE_SUCCESS;
+                                }))
+                        )
         );
     }
 
