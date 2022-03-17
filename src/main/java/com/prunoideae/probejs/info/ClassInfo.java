@@ -1,77 +1,168 @@
 package com.prunoideae.probejs.info;
 
 import com.prunoideae.probejs.formatter.ClassResolver;
+import com.prunoideae.probejs.info.type.ITypeInfo;
+import com.prunoideae.probejs.info.type.InfoTypeResolver;
+import com.prunoideae.probejs.info.type.TypeInfoParameterized;
+import com.prunoideae.probejs.info.type.TypeInfoVariable;
+import it.unimi.dsi.fastutil.Function;
 
-import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.lang.reflect.ParameterizedType;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.nio.file.Path;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class ClassInfo {
-    private final Class<?> clazz;
+    public static final Map<Class<?>, ClassInfo> CLASS_CACHE = new HashMap<>();
 
-    public ClassInfo(Class<?> clazz) {
-        this.clazz = clazz;
+    public static ClassInfo getOrCache(Class<?> clazz) {
+        if (CLASS_CACHE.containsKey(clazz))
+            return CLASS_CACHE.get(clazz);
+        ClassInfo info = new ClassInfo(clazz);
+        CLASS_CACHE.put(clazz, info);
+        return info;
     }
 
+    private final Class<?> clazzRaw;
+    private final String name;
+    private final int modifiers;
+    private final boolean isInterface;
+    private final List<ITypeInfo> parameters;
+    private final List<MethodInfo> methodInfo;
+    private final List<FieldInfo> fieldInfo;
+    private final List<ConstructorInfo> constructorInfo;
+    private final ClassInfo superClass;
+    private final List<ClassInfo> interfaces;
+
+    private static Map<String, ITypeInfo> resolveTypeOverrides(ITypeInfo typeInfo) {
+        Map<String, ITypeInfo> caughtTypes = new HashMap<>();
+        if (typeInfo instanceof TypeInfoParameterized parType) {
+            List<ITypeInfo> rawClassNames = Arrays.stream(parType.getResolvedClass().getTypeParameters()).map(InfoTypeResolver::resolveType).collect(Collectors.toList());
+            List<ITypeInfo> parTypeNames = parType.getParamTypes();
+            for (int i = 0; i < parTypeNames.size(); i++) {
+                caughtTypes.put(rawClassNames.get(i).getTypeName(), parTypeNames.get(i));
+            }
+        }
+        return caughtTypes;
+    }
+
+    private ClassInfo(Class<?> clazz) {
+        clazzRaw = clazz;
+        name = clazzRaw.getName();
+        modifiers = clazzRaw.getModifiers();
+        isInterface = clazzRaw.isInterface();
+        constructorInfo = Arrays.stream(clazzRaw.getConstructors()).map(ConstructorInfo::new).collect(Collectors.toList());
+        superClass = clazzRaw.getSuperclass() == Object.class || clazzRaw.getSuperclass() == null ? null : getOrCache(clazzRaw.getSuperclass());
+        interfaces = Arrays.stream(clazzRaw.getInterfaces()).map(ClassInfo::getOrCache).collect(Collectors.toList());
+        parameters = Arrays.stream(clazzRaw.getTypeParameters()).map(InfoTypeResolver::resolveType).collect(Collectors.toList());
+        methodInfo = Arrays.stream(clazzRaw.getMethods())
+                .map(MethodInfo::new)
+                .filter(m -> ClassResolver.acceptMethod(m.getName()))
+                .filter(m -> !m.shouldHide())
+                .collect(Collectors.toList());
+        fieldInfo = Arrays.stream(clazzRaw.getFields())
+                .map(FieldInfo::new)
+                .filter(f -> ClassResolver.acceptField(f.getName()))
+                .filter(f -> !f.shouldHide())
+                .collect(Collectors.toList());
+
+        //Resolve types - rollback everything till Object
+        applySuperGenerics(methodInfo, fieldInfo);
+    }
+
+    private void applySuperGenerics(List<MethodInfo> methodsToMutate, List<FieldInfo> fieldsToMutate) {
+        if (superClass != null) {
+            //Apply current level changes
+            ITypeInfo typeInfo = InfoTypeResolver.resolveType(clazzRaw.getGenericSuperclass());
+            Map<String, ITypeInfo> internalGenericMap = resolveTypeOverrides(typeInfo);
+            applyGenerics(internalGenericMap, methodsToMutate, fieldsToMutate);
+            Arrays.stream(clazzRaw.getGenericInterfaces()).map(InfoTypeResolver::resolveType).map(ClassInfo::resolveTypeOverrides).forEach(m -> applyGenerics(m, methodsToMutate, fieldsToMutate));
+            //Step to next level
+            superClass.applySuperGenerics(methodsToMutate, fieldsToMutate);
+            //Rewind
+            applyGenerics(internalGenericMap, methodsToMutate, fieldsToMutate);
+            Arrays.stream(clazzRaw.getGenericInterfaces()).map(InfoTypeResolver::resolveType).map(ClassInfo::resolveTypeOverrides).forEach(m -> applyGenerics(m, methodsToMutate, fieldsToMutate));
+        }
+        applyInterfaceGenerics(methodsToMutate, fieldsToMutate);
+    }
+
+    private void applyInterfaceGenerics(List<MethodInfo> methodsToMutate, List<FieldInfo> fieldsToMutate) {
+        //Apply current level changes
+        Arrays.stream(clazzRaw.getGenericInterfaces())
+                .map(InfoTypeResolver::resolveType)
+                .map(ClassInfo::resolveTypeOverrides)
+                .forEach(m -> applyGenerics(m, methodsToMutate, fieldsToMutate));
+        //Step to next level
+        interfaces.forEach(i -> i.applyInterfaceGenerics(methodsToMutate, fieldsToMutate));
+        //Rewind
+        Arrays.stream(clazzRaw.getGenericInterfaces())
+                .map(InfoTypeResolver::resolveType)
+                .map(ClassInfo::resolveTypeOverrides)
+                .forEach(m -> applyGenerics(m, methodsToMutate, fieldsToMutate));
+    }
+
+    private static void applyGenerics(Map<String, ITypeInfo> internalGenericMap, List<MethodInfo> methodInfo, List<FieldInfo> fieldInfo) {
+        for (MethodInfo method : methodInfo) {
+            Map<String, ITypeInfo> maskedNames = new HashMap<>();
+            method.getTypeVariables()
+                    .stream()
+                    .filter(i -> i instanceof TypeInfoVariable)
+                    .map(i -> (TypeInfoVariable) i)
+                    .forEach(v -> {
+                        maskedNames.put(v.getTypeName(), v);
+                        v.setUnderscored(true);
+                    });
+
+            method.setReturnType(InfoTypeResolver.mutateTypeMap(method.getReturnType(), maskedNames));
+            method.getParams().forEach(p -> p.setTypeInfo(InfoTypeResolver.mutateTypeMap(p.getType(), maskedNames)));
+
+            method.setReturnType(InfoTypeResolver.mutateTypeMap(method.getReturnType(), internalGenericMap));
+            method.getParams().forEach(p -> p.setTypeInfo(InfoTypeResolver.mutateTypeMap(p.getType(), internalGenericMap)));
+        }
+        for (FieldInfo field : fieldInfo) {
+            field.setTypeInfo(InfoTypeResolver.mutateTypeMap(field.getType(), internalGenericMap));
+        }
+    }
+
+
     public boolean isInterface() {
-        return clazz.isInterface();
+        return isInterface;
     }
 
     public boolean isAbstract() {
-        return Modifier.isAbstract(clazz.getModifiers());
-    }
-
-    public Class<?> getClazz() {
-        return clazz;
+        return Modifier.isAbstract(modifiers);
     }
 
     public ClassInfo getSuperClass() {
-        if (isInterface() || clazz.getSuperclass() == Object.class || clazz.getSuperclass() == null)
-            return null;
-        return new ClassInfo(clazz.getSuperclass());
+        return superClass;
     }
 
     public List<ClassInfo> getInterfaces() {
-        return Arrays.stream(clazz.getInterfaces()).map(ClassInfo::new).toList();
+        return interfaces;
     }
 
     public List<FieldInfo> getFieldInfo() {
-        return Arrays.stream(clazz.getFields())
-                .map(FieldInfo::new)
-                .filter(field -> ClassResolver.acceptField(field.getName()))
-                .filter(field -> !field.shouldHide())
-                .collect(Collectors.toList());
+        return fieldInfo;
     }
 
     public List<ConstructorInfo> getConstructorInfo() {
-        return Arrays.stream(clazz.getConstructors()).map(ConstructorInfo::new).collect(Collectors.toList());
+        return constructorInfo;
     }
 
-    private Set<Method> getAllSuperMethods() {
-        Set<Method> methods = new HashSet<>();
-        if (!clazz.isInterface()) {
-            if (clazz.getSuperclass() != null)
-                methods.addAll(List.of(clazz.getSuperclass().getMethods()));
-        } else {
-            for (Class<?> c : clazz.getInterfaces()) {
-                methods.addAll(List.of(c.getMethods()));
-            }
-        }
-        return methods;
-    }
 
     public List<MethodInfo> getMethodInfo() {
-        Set<Method> m = getAllSuperMethods();
-        return Arrays.stream(clazz.getMethods())
-                .filter(method -> !m.contains(method) || (!(method.getGenericReturnType() instanceof ParameterizedType) && Arrays.stream(method.getGenericParameterTypes()).noneMatch(t -> t instanceof ParameterizedType)))
-                .map(MethodInfo::new)
-                .filter(method -> ClassResolver.acceptMethod(method.getName()))
-                .filter(method -> !method.shouldHide())
-                .collect(Collectors.toList());
+        return methodInfo;
+    }
+
+    public List<ITypeInfo> getParameters() {
+        return parameters;
+    }
+
+    public Class<?> getClazzRaw() {
+        return clazzRaw;
+    }
+
+    public String getName() {
+        return name;
     }
 }

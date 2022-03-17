@@ -1,9 +1,11 @@
 package com.prunoideae.probejs.formatter.formatter;
 
 import com.prunoideae.probejs.formatter.NameResolver;
+import com.prunoideae.probejs.info.ClassInfo;
 import com.prunoideae.probejs.info.ConstructorInfo;
 import com.prunoideae.probejs.info.MethodInfo;
-import com.prunoideae.probejs.info.TypeInfo;
+import com.prunoideae.probejs.info.type.ITypeInfo;
+import com.prunoideae.probejs.info.type.TypeInfoClass;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -16,11 +18,12 @@ public class FormatterConstructor implements IFormatter {
         this.constructor = constructor;
     }
 
-    private String formatTypeParameterized(TypeInfo info) {
+    private String formatTypeParameterized(ITypeInfo info) {
         StringBuilder sb = new StringBuilder(new FormatterType(info).format(0, 0));
-        if (info.isClazz() && info.getRawType() instanceof Class<?> clazz) {
-            if (clazz.getTypeParameters().length != 0)
-                sb.append("<%s>".formatted(String.join(", ", Collections.nCopies(clazz.getTypeParameters().length, "any"))));
+        if (info instanceof TypeInfoClass clazz) {
+            ClassInfo classInfo = ClassInfo.getOrCache(clazz.getResolvedClass());
+            if (classInfo.getParameters().size() != 0)
+                sb.append("<%s>".formatted(String.join(", ", Collections.nCopies(classInfo.getParameters().size(), "any"))));
         }
         return sb.toString();
     }

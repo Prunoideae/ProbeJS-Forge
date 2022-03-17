@@ -7,7 +7,8 @@ import com.prunoideae.probejs.document.comment.special.CommentReturns;
 import com.prunoideae.probejs.document.type.IType;
 import com.prunoideae.probejs.formatter.NameResolver;
 import com.prunoideae.probejs.info.MethodInfo;
-import com.prunoideae.probejs.info.TypeInfo;
+import com.prunoideae.probejs.info.type.ITypeInfo;
+import com.prunoideae.probejs.info.type.TypeInfoClass;
 import com.prunoideae.probejs.util.Pair;
 
 import java.util.*;
@@ -37,13 +38,21 @@ public class FormatterMethod extends DocumentedFormatter<DocumentMethod> impleme
         String methodName = methodInfo.getName();
         if (methodName.equals("is") || methodName.equals("get") || methodName.equals("set"))
             return null;
-        if (methodName.startsWith("is") && methodInfo.getParams().size() == 0 && methodInfo.getReturnType().getRawType().equals(Boolean.class))
+        if (methodName.startsWith("is") && methodInfo.getParams().size() == 0 && (methodInfo.getReturnType().assignableFrom(new TypeInfoClass(Boolean.class)) || methodInfo.getReturnType().assignableFrom(new TypeInfoClass(Boolean.TYPE))))
             return getCamelCase(methodName.substring(2));
         if (methodName.startsWith("get") && methodInfo.getParams().size() == 0)
             return getCamelCase(methodName.substring(3));
         if (methodName.startsWith("set") && methodInfo.getParams().size() == 1)
             return getCamelCase(methodName.substring(3));
         return null;
+    }
+
+    public boolean isGetter() {
+        return !methodInfo.getName().startsWith("set");
+    }
+
+    public String getBeanTypeString() {
+        return isGetter() ? methodInfo.getReturnType().getTypeName() : methodInfo.getParams().get(0).getType().getTypeName();
     }
 
     private Pair<Map<String, IType>, IType> getModifiers() {
@@ -61,11 +70,11 @@ public class FormatterMethod extends DocumentedFormatter<DocumentMethod> impleme
         return new Pair<>(modifiers, returns);
     }
 
-    private String formatTypeParameterized(TypeInfo info) {
+    private static String formatTypeParameterized(ITypeInfo info) {
         StringBuilder sb = new StringBuilder(new FormatterType(info).format(0, 0));
-        if (info.isClazz() && info.getRawType() instanceof Class<?> clazz) {
-            if (clazz.getTypeParameters().length != 0)
-                sb.append("<%s>".formatted(String.join(", ", Collections.nCopies(clazz.getTypeParameters().length, "any"))));
+        if (info instanceof TypeInfoClass clazz && !NameResolver.isTypeSpecial(clazz.getResolvedClass())) {
+            if (clazz.getTypeVariables().size() != 0)
+                sb.append("<%s>".formatted(String.join(", ", Collections.nCopies(clazz.getTypeVariables().size(), "any"))));
         }
         return sb.toString();
     }
@@ -91,12 +100,25 @@ public class FormatterMethod extends DocumentedFormatter<DocumentMethod> impleme
         return String.join(", ", paramStrings);
     }
 
-    @Override
-    public List<String> format(Integer indent, Integer stepIndent) {
-        List<String> formatted = new ArrayList<>();
+    public String formatMethod() {
         Pair<Map<String, IType>, IType> modifierPair = getModifiers();
         Map<String, IType> paramModifiers = modifierPair.getFirst();
         IType returnModifier = modifierPair.getSecond();
+        StringBuilder sb = new StringBuilder();
+        if (methodInfo.isStatic() && !isInterface)
+            sb.append("static ");
+        sb.append(methodInfo.getName());
+        if (methodInfo.getTypeVariables().size() != 0)
+            sb.append("<%s>".formatted(methodInfo.getTypeVariables().stream().map(ITypeInfo::getTypeName).collect(Collectors.joining(", "))));
+        sb.append("(%s)".formatted(formatParams(paramModifiers)));
+        sb.append(": %s;".formatted(returnModifier == null ? formatReturn() : returnModifier.getTypeName()));
+        return sb.toString();
+    }
+
+    @Override
+    public List<String> format(Integer indent, Integer stepIndent) {
+        List<String> formatted = new ArrayList<>();
+
         if (document != null) {
             DocumentComment comment = document.getComment();
             if (CommentUtil.isHidden(comment))
@@ -105,16 +127,7 @@ public class FormatterMethod extends DocumentedFormatter<DocumentMethod> impleme
                 formatted.addAll(comment.format(indent, stepIndent));
         }
 
-        StringBuilder sb = new StringBuilder();
-        if (methodInfo.isStatic() && !isInterface)
-            sb.append("static ");
-        sb.append(methodInfo.getName());
-        if (methodInfo.getTypeVariables().size() != 0)
-            sb.append("<%s>".formatted(methodInfo.getTypeVariables().stream().map(TypeInfo::getTypeName).collect(Collectors.joining(", "))));
-        sb.append("(%s)".formatted(formatParams(paramModifiers)));
-        sb.append(": %s;".formatted(returnModifier == null ? formatReturn() : returnModifier.getTypeName()));
-
-        formatted.add(" ".repeat(indent) + sb);
+        formatted.add(" ".repeat(indent) + formatMethod());
         return formatted;
     }
 

@@ -14,11 +14,11 @@ public class ClassResolver {
     }
 
     public static boolean acceptMethod(String methodName) {
-        return !Pattern.matches("^[fm]_[\\d_]+$", methodName);
+        return !methodName.equals("constructor") && !Pattern.matches("^[fm]_[\\d_]+$", methodName);
     }
 
     public static boolean acceptField(String fieldName) {
-        return !Pattern.matches("^[fm]_[\\d_]+$", fieldName);
+        return !fieldName.equals("constructor") && !Pattern.matches("^[fm]_[\\d_]+$", fieldName);
     }
 
     public static void init() {
@@ -31,7 +31,6 @@ public class ClassResolver {
         skipClass(Byte.class, Byte.TYPE);
         skipClass(Double.class, Double.TYPE, Float.class, Float.TYPE);
         skipClass(Boolean.class, Boolean.TYPE);
-        skipClass(Map.class);
     }
 
 

@@ -6,13 +6,17 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class ConstructorInfo {
-    private final Constructor<?> constructor;
+    private List<MethodInfo.ParamInfo> params;
 
     public ConstructorInfo(Constructor<?> constructor) {
-        this.constructor = constructor;
+        this.params = Arrays.stream(constructor.getParameters()).map(MethodInfo.ParamInfo::new).collect(Collectors.toList());
     }
 
     public List<MethodInfo.ParamInfo> getParams() {
-        return Arrays.stream(constructor.getParameters()).map(MethodInfo.ParamInfo::new).collect(Collectors.toList());
+        return params;
+    }
+
+    public void setParams(List<MethodInfo.ParamInfo> params) {
+        this.params = params;
     }
 }

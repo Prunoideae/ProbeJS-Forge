@@ -1,6 +1,9 @@
 package com.prunoideae.probejs.info;
 
-import java.lang.reflect.Type;
+import com.prunoideae.probejs.info.type.ITypeInfo;
+import com.prunoideae.probejs.info.type.TypeInfoParameterized;
+import com.prunoideae.probejs.info.type.TypeInfoVariable;
+
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -34,16 +37,12 @@ public class Walker {
         this.walkType = walkType;
     }
 
-    private Set<Class<?>> walkType(TypeInfo type) {
+    private Set<Class<?>> walkType(ITypeInfo type) {
         Set<Class<?>> result = new HashSet<>();
-        if (type.isParameterized() && walkType) {
-            type.getParameterizedInfo().forEach(info -> result.addAll(walkType(info)));
-        }
-        if (type.isClazz() || type.isParameterized() || type.isArray())
-            result.add((Class<?>) type.getRawType());
-        if (type.isWildcard())
-            result.add((Class<?>) type.getWildcardBound().getRawType());
-
+        if (type instanceof TypeInfoParameterized parType && walkType)
+            parType.getParamTypes().forEach(info -> result.addAll(walkType(info)));
+        if (!(type instanceof TypeInfoVariable))
+            result.add(type.getResolvedClass());
         result.removeIf(Objects::isNull);
         return result;
     }
@@ -51,13 +50,13 @@ public class Walker {
     private Set<Class<?>> touch(Set<Class<?>> classes) {
         Set<Class<?>> result = new HashSet<>();
         for (Class<?> clazz : classes) {
-            ClassInfo info = new ClassInfo(clazz);
+            ClassInfo info = ClassInfo.getOrCache(clazz);
 
             if (walkSuper) {
                 ClassInfo superclass = info.getSuperClass();
                 if (superclass != null)
-                    result.add(superclass.getClazz());
-                info.getInterfaces().stream().map(ClassInfo::getClazz).forEach(result::add);
+                    result.add(superclass.getClazzRaw());
+                info.getInterfaces().stream().map(ClassInfo::getClazzRaw).forEach(result::add);
             }
             if (walkField)
                 info.getFieldInfo().forEach(f -> result.addAll(walkType(f.getType())));

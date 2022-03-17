@@ -1,10 +1,9 @@
 package com.prunoideae.probejs.document.type;
 
-import com.prunoideae.probejs.info.TypeInfo;
+import com.prunoideae.probejs.info.type.*;
 import com.prunoideae.probejs.util.Pair;
 import com.prunoideae.probejs.util.StringUtil;
 
-import java.lang.reflect.ParameterizedType;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -36,13 +35,13 @@ public class Resolver {
         return new TypeNamed(type);
     }
 
-    public static boolean typeEquals(IType docType, TypeInfo param) {
+    public static boolean typeEquals(IType docType, ITypeInfo param) {
         if (docType instanceof TypeUnion || docType instanceof TypeIntersection)
             return false;
-        if (docType instanceof TypeArray && param.isArray())
-            return typeEquals(((TypeArray) docType).getComponent(), param.getComponent());
-        if (docType instanceof TypeParameterized && param.isParameterized()) {
-            List<TypeInfo> paramInfo = param.getParameterizedInfo();
+        if (docType instanceof TypeArray && param instanceof TypeInfoArray array)
+            return typeEquals(((TypeArray) docType).getComponent(), array.getBaseType());
+        if (docType instanceof TypeParameterized && param instanceof TypeInfoParameterized parameterized) {
+            List<ITypeInfo> paramInfo = parameterized.getParamTypes();
             List<IType> paramDoc = ((TypeParameterized) docType).getParamTypes();
             if (paramDoc.size() != paramInfo.size())
                 return false;
@@ -50,9 +49,9 @@ public class Resolver {
                 if (!typeEquals(paramDoc.get(i), paramInfo.get(i)))
                     return false;
             }
-            return typeEquals(((TypeParameterized) docType).getRawType(), new TypeInfo(param.getRawType()));
+            return typeEquals(((TypeParameterized) docType).getRawType(), parameterized.getBaseType());
         }
-        if (docType instanceof TypeNamed && (param.isVariable() || param.isClazz()))
+        if (docType instanceof TypeNamed && (param instanceof TypeInfoVariable || param instanceof TypeInfoClass))
             return ((TypeNamed) docType).getRawTypeName().equals(param.getTypeName());
 
         return false;

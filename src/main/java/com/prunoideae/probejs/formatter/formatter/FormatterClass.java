@@ -8,7 +8,9 @@ import com.prunoideae.probejs.document.DocumentMethod;
 import com.prunoideae.probejs.document.comment.special.CommentHidden;
 import com.prunoideae.probejs.formatter.NameResolver;
 import com.prunoideae.probejs.info.ClassInfo;
-import com.prunoideae.probejs.info.TypeInfo;
+import com.prunoideae.probejs.info.type.ITypeInfo;
+import com.prunoideae.probejs.info.type.InfoTypeResolver;
+import com.prunoideae.probejs.info.type.TypeInfoClass;
 
 import java.lang.reflect.TypeVariable;
 import java.util.*;
@@ -49,7 +51,7 @@ public class FormatterClass extends DocumentedFormatter<DocumentClass> implement
         if (!internal)
             firstLine.add("declare");
 
-        if (classInfo.isAbstract())
+        if (classInfo.isAbstract() && !classInfo.isInterface())
             firstLine.add("abstract");
 
         if (classInfo.isInterface())
@@ -57,17 +59,17 @@ public class FormatterClass extends DocumentedFormatter<DocumentClass> implement
         else
             firstLine.add("class");
 
-        firstLine.add(NameResolver.getResolvedName(classInfo.getClazz().getName()).getLastName());
-        if (classInfo.getClazz().getTypeParameters().length != 0) {
-            firstLine.add("<%s>".formatted(Arrays.stream(classInfo.getClazz().getTypeParameters()).map(TypeVariable::getName).collect(Collectors.joining(", "))));
+        firstLine.add(NameResolver.getResolvedName(classInfo.getName()).getLastName());
+        if (classInfo.getClazzRaw().getTypeParameters().length != 0) {
+            firstLine.add("<%s>".formatted(Arrays.stream(classInfo.getClazzRaw().getTypeParameters()).map(TypeVariable::getName).collect(Collectors.joining(", "))));
         }
         if (classInfo.getSuperClass() != null) {
             firstLine.add("extends");
-            firstLine.add(new FormatterType(new TypeInfo(classInfo.getClazz().getGenericSuperclass()), false).format(0, 0));
+            firstLine.add(formatTypeParameterized(new TypeInfoClass(classInfo.getSuperClass().getClazzRaw())));
         }
         if (!classInfo.getInterfaces().isEmpty()) {
-            firstLine.add("implements");
-            firstLine.add("%s".formatted(Arrays.stream(classInfo.getClazz().getGenericInterfaces()).map(TypeInfo::new).map(i -> new FormatterType(i, false)).map(f -> f.format(0, 0)).collect(Collectors.joining(", "))));
+            firstLine.add(classInfo.isInterface() ? "extends" : "implements");
+            firstLine.add("%s".formatted(Arrays.stream(classInfo.getClazzRaw().getGenericInterfaces()).map(InfoTypeResolver::resolveType).map(FormatterClass::formatTypeParameterized).collect(Collectors.joining(", "))));
         }
         firstLine.add("{");
         formatted.add(" ".repeat(indent) + String.join(" ", firstLine));
@@ -87,22 +89,40 @@ public class FormatterClass extends DocumentedFormatter<DocumentClass> implement
         });
 
         // beans
-        methodFormatters.values().forEach(ml -> ml.forEach(m -> {
-            String beanName = m.getBean();
-            if (beanName != null && Character.isAlphabetic(beanName.charAt(0)))
-                if (!fieldFormatters.containsKey(beanName) && !methodFormatters.containsKey(beanName))
-                    formatted.addAll(m.formatBean(indent + stepIndent, stepIndent));
-        }));
+        if (!classInfo.isInterface()) {
+            Map<String, FormatterMethod> getterMap = new HashMap<>();
+            Map<String, List<FormatterMethod>> setterMap = new HashMap<>();
+
+            methodFormatters.values().forEach(ml -> ml.forEach(m -> {
+                String beanName = m.getBean();
+                if (beanName != null && Character.isAlphabetic(beanName.charAt(0)))
+                    if (!fieldFormatters.containsKey(beanName) && !methodFormatters.containsKey(beanName)) {
+                        if (m.isGetter())
+                            getterMap.put(beanName, m);
+                        else
+                            setterMap.computeIfAbsent(beanName, s -> new ArrayList<>()).add(m);
+                    }
+            }));
+
+            getterMap.forEach((k, v) -> formatted.addAll(v.formatBean(indent + stepIndent, stepIndent)));
+            setterMap.forEach((k, v) -> {
+                Optional<FormatterMethod> result = v.stream()
+                        .filter(m -> !getterMap.containsKey(m.getBean()) || getterMap.get(m.getBean()).getBeanTypeString().equals(m.getBeanTypeString()))
+                        .findFirst();
+                result.ifPresent(formatterMethod -> formatted.addAll(formatterMethod.formatBean(indent + stepIndent, stepIndent)));
+            });
+        }
 
         // constructors
-        if (internal) {
-            formatted.add(" ".repeat(indent + stepIndent) + "/**");
-            formatted.add(" ".repeat(indent + stepIndent) + "* Internal constructor, this means that it's not valid and you will get an error if you use it.");
-            formatted.add(" ".repeat(indent + stepIndent) + "*/");
-            formatted.add(" ".repeat(indent + stepIndent) + "private constructor();");
-        } else {
-            classInfo.getConstructorInfo().stream().map(FormatterConstructor::new).forEach(f -> formatted.addAll(f.format(indent + stepIndent, stepIndent)));
-        }
+        if (!classInfo.isInterface())
+            if (internal) {
+                formatted.add(" ".repeat(indent + stepIndent) + "/**");
+                formatted.add(" ".repeat(indent + stepIndent) + "* Internal constructor, this means that it's not valid and you will get an error if you use it.");
+                formatted.add(" ".repeat(indent + stepIndent) + "*/");
+                formatted.add(" ".repeat(indent + stepIndent) + "protected constructor();");
+            } else {
+                classInfo.getConstructorInfo().stream().map(FormatterConstructor::new).forEach(f -> formatted.addAll(f.format(indent + stepIndent, stepIndent)));
+            }
         // additions
         fieldAdditions.forEach(fieldDoc -> formatted.addAll(fieldDoc.format(indent + stepIndent, stepIndent)));
         methodAdditions.forEach(methodDoc -> formatted.addAll(methodDoc.format(indent + stepIndent, stepIndent)));
@@ -130,5 +150,14 @@ public class FormatterClass extends DocumentedFormatter<DocumentClass> implement
             else
                 methodAdditions.add(documentMethod);
         });
+    }
+
+    public static String formatTypeParameterized(ITypeInfo info) {
+        StringBuilder sb = new StringBuilder(new FormatterType(info, false).format(0, 0));
+        if (info instanceof TypeInfoClass clazz) {
+            if (clazz.getTypeVariables().size() != 0)
+                sb.append("<%s>".formatted(String.join(", ", Collections.nCopies(clazz.getTypeVariables().size(), "any"))));
+        }
+        return sb.toString();
     }
 }

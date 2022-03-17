@@ -90,7 +90,7 @@ public class TypingCompiler {
         Map<String, List<IFormatter>> namespaced = new HashMap<>();
 
         for (Class<?> clazz : globalClasses) {
-            FormatterClass formatter = new FormatterClass(new ClassInfo(clazz));
+            FormatterClass formatter = new FormatterClass(ClassInfo.getOrCache(clazz));
             Manager.classDocuments.getOrDefault(clazz.getName(), new ArrayList<>()).forEach(formatter::setDocument);
 
             NameResolver.ResolvedName name = NameResolver.getResolvedName(clazz.getName());

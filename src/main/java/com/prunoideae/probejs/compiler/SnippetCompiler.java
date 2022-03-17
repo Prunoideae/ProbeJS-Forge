@@ -3,8 +3,12 @@ package com.prunoideae.probejs.compiler;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.prunoideae.probejs.ProbeConfig;
+import com.prunoideae.probejs.ProbePaths;
+import com.prunoideae.probejs.formatter.NameResolver;
 import dev.latvian.mods.kubejs.KubeJSPaths;
 
+import javax.json.Json;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.Reader;
@@ -48,7 +52,10 @@ public class SnippetCompiler {
                 byModMembers.forEach((mod, modMembers) -> {
                     JsonObject modMembersJson = new JsonObject();
                     JsonArray prefixes = new JsonArray();
-                    prefixes.add("@%s.%s".formatted(mod, type));
+                    if (ProbeConfig.INSTANCE.vanillaOrder)
+                        prefixes.add("@%s.%s".formatted(mod, type));
+                    else
+                        prefixes.add("@%s.%s".formatted(type, mod));
                     modMembersJson.add("prefix", prefixes);
                     modMembersJson.addProperty("body", "\"%s:${1|%s|}\"".formatted(mod, String.join(",", modMembers)));
                     resultJson.add("%s_%s".formatted(type, mod), modMembersJson);
@@ -68,7 +75,10 @@ public class SnippetCompiler {
                 byModMembers.forEach((mod, modMembers) -> {
                     JsonObject modMembersJson = new JsonObject();
                     JsonArray prefixes = new JsonArray();
-                    prefixes.add("@%s.tags.%s".formatted(mod, type));
+                    if (ProbeConfig.INSTANCE.vanillaOrder)
+                        prefixes.add("@%s.tags.%s".formatted(mod, type));
+                    else
+                        prefixes.add("@%s.tags.%s".formatted(type, mod));
                     modMembersJson.add("prefix", prefixes);
                     modMembersJson.addProperty("body", "\"#%s:${1|%s|}\"".formatted(mod, String.join(",", modMembers)));
                     resultJson.add("%s_tag_%s".formatted(type, mod), modMembersJson);
@@ -83,12 +93,7 @@ public class SnippetCompiler {
     public static void compile() throws IOException {
         Path kubePath = KubeJSPaths.EXPORTED.resolve("kubejs-server-export.json");
         if (kubePath.toFile().canRead()) {
-            Path codePath = KubeJSPaths.DIRECTORY.resolve(".vscode");
-            if (Files.notExists(codePath)) {
-                Files.createDirectories(codePath);
-            }
-            Path codeFile = codePath.resolve("probe.code-snippets");
-
+            Path codeFile = ProbePaths.SNIPPET.resolve("probe.code-snippets");
             Gson gson = new Gson();
             Reader reader = Files.newBufferedReader(kubePath);
             KubeDump kubeDump = gson.fromJson(reader, KubeDump.class);
@@ -97,5 +102,25 @@ public class SnippetCompiler {
             writer.flush();
 
         }
+    }
+
+    public static void compileClassNames() throws IOException {
+        JsonObject resultJson = new JsonObject();
+        for (Map.Entry<String, NameResolver.ResolvedName> entry : NameResolver.resolvedNames.entrySet()) {
+            String className = entry.getKey();
+            NameResolver.ResolvedName resolvedName = entry.getValue();
+            JsonObject classJson = new JsonObject();
+            JsonArray prefix = new JsonArray();
+            prefix.add("!%s".formatted(resolvedName.getFullName()));
+            classJson.add("prefix", prefix);
+            classJson.addProperty("body", className);
+            resultJson.add(resolvedName.getFullName(), classJson);
+        }
+
+        Path codeFile = ProbePaths.SNIPPET.resolve("classNames.code-snippets");
+        Gson gson = new Gson();
+        BufferedWriter writer = Files.newBufferedWriter(codeFile);
+        gson.toJson(resultJson, writer);
+        writer.flush();
     }
 }

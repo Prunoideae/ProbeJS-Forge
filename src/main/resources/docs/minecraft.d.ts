@@ -8,6 +8,40 @@ class RecipeEventJS {
      */
     getRecipes(): java.util.Map<java.lang.String, java.lang.Object>;
 
+
+    /**
+     * @hidden
+     */
+    campfireCooking: dev.latvian.mods.kubejs.recipe.RecipeFunction;
+    /**
+     * @hidden
+     */
+    smithing: dev.latvian.mods.kubejs.recipe.RecipeFunction;
+    /**
+     * @hidden
+     */
+    stonecutting: dev.latvian.mods.kubejs.recipe.RecipeFunction;
+    /**
+     * @hidden
+     */
+    shaped: dev.latvian.mods.kubejs.recipe.RecipeFunction;
+    /**
+     * @hidden
+     */
+    smoking: dev.latvian.mods.kubejs.recipe.RecipeFunction;
+    /**
+     * @hidden
+     */
+    shapeless: dev.latvian.mods.kubejs.recipe.RecipeFunction;
+    /**
+     * @hidden
+     */
+    smelting: dev.latvian.mods.kubejs.recipe.RecipeFunction;
+    /**
+     * @hidden
+     */
+    blasting: dev.latvian.mods.kubejs.recipe.RecipeFunction;
+
     /**
      * Adds a smelting recipe to Minecraft.
      * 

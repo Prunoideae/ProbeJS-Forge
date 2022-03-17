@@ -11,6 +11,7 @@ import com.prunoideae.probejs.document.comment.CommentHandler;
 import com.prunoideae.probejs.document.parser.processor.DocumentProviderHandler;
 import com.prunoideae.probejs.formatter.ClassResolver;
 import com.prunoideae.probejs.formatter.NameResolver;
+import com.prunoideae.probejs.info.ClassInfo;
 import dev.latvian.mods.kubejs.KubeJSPaths;
 import dev.latvian.mods.kubejs.server.ServerSettings;
 import net.minecraft.commands.CommandSourceStack;
@@ -27,13 +28,15 @@ import java.util.Collection;
 
 public class ProbeCommands {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
+
         dispatcher.register(
                 Commands.literal("probejs")
                         .then(Commands.literal("dump")
                                 .requires(source -> source.getServer().isSingleplayer() || source.hasPermission(2))
                                 .executes(context -> {
                                     try {
-                                        export(context.getSource());
+                                        if (ProbeConfig.INSTANCE.autoExport)
+                                            export(context.getSource());
                                         SnippetCompiler.compile();
                                         DocumentProviderHandler.init();
                                         CommentHandler.init();
@@ -41,6 +44,8 @@ public class ProbeCommands {
                                         ClassResolver.init();
                                         NameResolver.init();
                                         TypingCompiler.compile();
+                                        if (ProbeConfig.INSTANCE.exportClassNames)
+                                            SnippetCompiler.compileClassNames();
                                     } catch (Exception e) {
                                         e.printStackTrace();
                                         context.getSource().sendSuccess(new TextComponent("Uncaught exception happened in wrapper, please report to the Github issue with complete latest.log."), false);
@@ -75,6 +80,24 @@ public class ProbeCommands {
                                     context.getSource().sendSuccess(new TextComponent("OnEvent mixin wrapper set to: %s".formatted(ProbeConfig.INSTANCE.disabled ? "disabled" : "enabled")), false);
                                     ProbeConfig.INSTANCE.save();
                                     context.getSource().sendSuccess(new TextComponent("Changes will be applied next time you start the game."), false);
+                                    return Command.SINGLE_SUCCESS;
+                                }))
+                                .then(Commands.literal("toggle_snippet_order").executes(context -> {
+                                    ProbeConfig.INSTANCE.vanillaOrder = !ProbeConfig.INSTANCE.vanillaOrder;
+                                    context.getSource().sendSuccess(new TextComponent("In snippets, which will appear first: %s".formatted(ProbeConfig.INSTANCE.vanillaOrder ? "mod_id" : "member_type")), false);
+                                    ProbeConfig.INSTANCE.save();
+                                    return Command.SINGLE_SUCCESS;
+                                }))
+                                .then(Commands.literal("toggle_classname_snippets").executes(context -> {
+                                    ProbeConfig.INSTANCE.exportClassNames = !ProbeConfig.INSTANCE.exportClassNames;
+                                    context.getSource().sendSuccess(new TextComponent("Export class name as snippets set to: %s".formatted(ProbeConfig.INSTANCE.exportClassNames)), false);
+                                    ProbeConfig.INSTANCE.save();
+                                    return Command.SINGLE_SUCCESS;
+                                }))
+                                .then(Commands.literal("toggle_autoexport").executes(context -> {
+                                    ProbeConfig.INSTANCE.autoExport = !ProbeConfig.INSTANCE.autoExport;
+                                    context.getSource().sendSuccess(new TextComponent("Auto-export for KubeJS set to: %s".formatted(ProbeConfig.INSTANCE.autoExport)), false);
+                                    ProbeConfig.INSTANCE.save();
                                     return Command.SINGLE_SUCCESS;
                                 }))
                         )

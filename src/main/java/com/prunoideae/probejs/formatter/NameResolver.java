@@ -1,7 +1,7 @@
 package com.prunoideae.probejs.formatter;
 
 import com.google.gson.Gson;
-import com.prunoideae.probejs.info.TypeInfo;
+import com.prunoideae.probejs.info.type.ITypeInfo;
 
 import java.util.*;
 import java.util.function.Function;
@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 
 public class NameResolver {
     public static class ResolvedName {
-        public static final ResolvedName UNRESOLVED = new ResolvedName(List.of("Unknown"));
+        public static final ResolvedName UNRESOLVED = new ResolvedName(List.of("any"));
         private final List<String> names;
 
         private ResolvedName(List<String> names) {
@@ -50,7 +50,7 @@ public class NameResolver {
     }
 
     public static final HashMap<String, ResolvedName> resolvedNames = new HashMap<>();
-    public static final HashMap<Class<?>, Function<TypeInfo, String>> specialTypeFormatters = new HashMap<>();
+    public static final HashMap<Class<?>, Function<ITypeInfo, String>> specialTypeFormatters = new HashMap<>();
     public static final HashMap<Class<?>, Function<Object, String>> specialValueFormatters = new HashMap<>();
     public static final Set<String> keywords = new HashSet<>();
 
@@ -75,8 +75,18 @@ public class NameResolver {
         return resolvedNames.getOrDefault(className, ResolvedName.UNRESOLVED);
     }
 
-    public static void putTypeFormatter(Class<?> className, Function<TypeInfo, String> formatter) {
+    public static void putTypeFormatter(Class<?> className, Function<ITypeInfo, String> formatter) {
         specialTypeFormatters.put(className, formatter);
+    }
+
+    public static boolean isTypeSpecial(Class<?> clazz) {
+        if (specialTypeFormatters.containsKey(clazz))
+            return true;
+        for (Class<?> key : specialTypeFormatters.keySet()) {
+            if (key.isAssignableFrom(clazz))
+                return true;
+        }
+        return false;
     }
 
     public static void putValueFormatter(Function<Object, String> transformer, Class<?>... classes) {
@@ -119,7 +129,7 @@ public class NameResolver {
     }
 
     public static void init() {
-        putResolvedName(Object.class, "object");
+        putResolvedName(Object.class, "any");
         putResolvedName(String.class, "string");
         putResolvedName(Character.class, "string");
         putResolvedName(Character.TYPE, "string");
@@ -143,7 +153,6 @@ public class NameResolver {
 
         putResolvedName(Boolean.class, "boolean");
         putResolvedName(Boolean.TYPE, "boolean");
-        putResolvedName(Map.class, "Map");
 
         Gson gson = new Gson();
 

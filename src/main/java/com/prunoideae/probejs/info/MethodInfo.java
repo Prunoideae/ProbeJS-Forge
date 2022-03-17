@@ -1,5 +1,7 @@
 package com.prunoideae.probejs.info;
 
+import com.prunoideae.probejs.info.type.ITypeInfo;
+import com.prunoideae.probejs.info.type.InfoTypeResolver;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import dev.latvian.mods.rhino.util.RemapForJS;
 
@@ -8,57 +10,80 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class MethodInfo {
-    private final Method method;
+    private final String name;
+    private final boolean shouldHide;
+    private final int modifiers;
+    private ITypeInfo returnType;
+    private List<ParamInfo> params;
+    private List<ITypeInfo> typeVariables;
 
     public MethodInfo(Method method) {
-        this.method = method;
+        this.name = method.getAnnotation(RemapForJS.class) != null ? method.getAnnotation(RemapForJS.class).value() : method.getName();
+        this.shouldHide = method.getAnnotation(HideFromJS.class) != null;
+        this.modifiers = method.getModifiers();
+        this.returnType = InfoTypeResolver.resolveType(method.getGenericReturnType());
+        this.params = Arrays.stream(method.getParameters()).map(ParamInfo::new).collect(Collectors.toList());
+        this.typeVariables = Arrays.stream(method.getTypeParameters()).map(InfoTypeResolver::resolveType).collect(Collectors.toList());
     }
 
     public String getName() {
-        if (method.getAnnotation(RemapForJS.class) != null)
-            return method.getAnnotation(RemapForJS.class).value();
-        return method.getName();
+        return name;
     }
 
     public boolean shouldHide() {
-        return method.getAnnotation(HideFromJS.class) != null;
+        return shouldHide;
     }
 
     public boolean isStatic() {
-        return Modifier.isStatic(method.getModifiers());
+        return Modifier.isStatic(modifiers);
     }
 
-    public TypeInfo getReturnType() {
-        return new TypeInfo(method.getGenericReturnType());
+    public ITypeInfo getReturnType() {
+        return returnType;
     }
 
     public List<ParamInfo> getParams() {
-        return Arrays.stream(method.getParameters()).map(ParamInfo::new).collect(Collectors.toList());
+        return params;
     }
 
-    public List<TypeInfo> getTypeVariables() {
-        return Arrays.stream(method.getTypeParameters()).map(TypeInfo::new).collect(Collectors.toList());
+    public List<ITypeInfo> getTypeVariables() {
+        return typeVariables;
     }
 
+    public void setParams(List<ParamInfo> params) {
+        this.params = params;
+    }
+
+    public void setReturnType(ITypeInfo returnType) {
+        this.returnType = returnType;
+    }
+
+    public void setTypeVariables(List<ITypeInfo> typeVariables) {
+        this.typeVariables = typeVariables;
+    }
 
     public static class ParamInfo {
-        private final Parameter parameter;
+        private final String name;
+        private ITypeInfo type;
 
         public ParamInfo(Parameter parameter) {
-            this.parameter = parameter;
+            this.name = parameter.getName();
+            this.type = InfoTypeResolver.resolveType(parameter.getParameterizedType());
         }
 
         public String getName() {
-            return parameter.getName();
+            return name;
         }
 
-        public TypeInfo getType() {
-            return new TypeInfo(parameter.getParameterizedType());
+        public ITypeInfo getType() {
+            return type;
         }
 
+        public void setTypeInfo(ITypeInfo type) {
+            this.type = type;
+        }
     }
 }

@@ -1,55 +1,58 @@
 package com.prunoideae.probejs.formatter.formatter;
 
 import com.prunoideae.probejs.formatter.NameResolver;
-import com.prunoideae.probejs.info.TypeInfo;
+import com.prunoideae.probejs.info.type.*;
 
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class FormatterType {
-    private final TypeInfo typeInfo;
+    private final ITypeInfo typeInfo;
     private final boolean useSpecial;
 
-    public FormatterType(TypeInfo typeInfo, boolean useSpecial) {
+    public FormatterType(ITypeInfo typeInfo, boolean useSpecial) {
         this.typeInfo = typeInfo;
         this.useSpecial = useSpecial;
     }
 
-    public FormatterType(TypeInfo typeInfo) {
+    public FormatterType(ITypeInfo typeInfo) {
         this(typeInfo, true);
     }
 
     public String format(Integer indent, Integer stepIndent) {
         if (useSpecial) {
-            Class<?> rawClass = (Class<?>) typeInfo.getRawType();
+            Class<?> rawClass = typeInfo.getResolvedClass();
             if (NameResolver.specialTypeFormatters.containsKey(rawClass)) {
                 return NameResolver.specialTypeFormatters.get(rawClass).apply(this.typeInfo);
             } else {
-                for (Map.Entry<Class<?>, Function<TypeInfo, String>> entry : NameResolver.specialTypeFormatters.entrySet()) {
+                for (Map.Entry<Class<?>, Function<ITypeInfo, String>> entry : NameResolver.specialTypeFormatters.entrySet()) {
                     Class<?> clazz = entry.getKey();
-                    Function<TypeInfo, String> formatter = entry.getValue();
+                    Function<ITypeInfo, String> formatter = entry.getValue();
                     if (clazz.isAssignableFrom(rawClass))
                         return formatter.apply(typeInfo);
                 }
             }
         }
 
-        if (typeInfo.isClazz())
+        if (typeInfo instanceof TypeInfoClass)
             return NameResolver.getResolvedName(typeInfo.getTypeName()).getFullName();
-        if (typeInfo.isVariable())
+        if (typeInfo instanceof TypeInfoWildcard)
+            return new FormatterType(typeInfo.getBaseType(), useSpecial).format(indent, stepIndent);
+        if (typeInfo instanceof TypeInfoVariable)
             return typeInfo.getTypeName();
-        if (typeInfo.isWildcard())
-            return new FormatterType(typeInfo.getWildcardBound()).format(indent, stepIndent);
-        if (typeInfo.isArray())
-            return new FormatterType(typeInfo.getComponent()).format(indent, stepIndent) + "[]";
-        if (typeInfo.isParameterized())
-            return new FormatterType(new TypeInfo(typeInfo.getRawType())).format(indent, stepIndent) +
-                    "<%s>".formatted(typeInfo
-                            .getParameterizedInfo()
+        if (typeInfo instanceof TypeInfoArray)
+            return new FormatterType(typeInfo.getBaseType(), useSpecial).format(indent, stepIndent) + "[]";
+        if (typeInfo instanceof TypeInfoParameterized parType) {
+            if (new FormatterType(parType.getBaseType(), useSpecial).format(0, 0).equals("any"))
+                return NameResolver.ResolvedName.UNRESOLVED.getFullName();
+            return new FormatterType(parType.getBaseType(), useSpecial).format(indent, stepIndent) +
+                    "<%s>".formatted(parType
+                            .getParamTypes()
                             .stream()
-                            .map(p -> new FormatterType(p).format(indent, stepIndent))
+                            .map(p -> new FormatterType(p, useSpecial).format(indent, stepIndent))
                             .collect(Collectors.joining(", ")));
+        }
         return "any";
     }
 }
