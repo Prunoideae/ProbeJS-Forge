@@ -3,8 +3,10 @@ package com.prunoideae.probejs.document;
 import com.prunoideae.probejs.ProbeJS;
 import com.prunoideae.probejs.ProbePaths;
 import com.prunoideae.probejs.document.comment.CommentUtil;
+import com.prunoideae.probejs.document.comment.special.CommentAssign;
 import com.prunoideae.probejs.document.comment.special.CommentTarget;
 import com.prunoideae.probejs.document.parser.processor.Document;
+import com.prunoideae.probejs.document.type.IType;
 import dev.architectury.platform.Mod;
 import dev.architectury.platform.Platform;
 
@@ -19,6 +21,7 @@ import java.util.zip.ZipFile;
 
 public class Manager {
     public static Map<String, List<DocumentClass>> classDocuments = new HashMap<>();
+    public static Map<String, List<IType>> typesAssignable = new HashMap<>();
     public static Map<String, List<DocumentClass>> classAdditions = new HashMap<>();
     public static List<DocumentType> typeDocuments = new ArrayList<>();
 
@@ -82,9 +85,11 @@ public class Manager {
                 if (CommentUtil.isLoaded(classDoc.getComment())) {
                     DocumentComment comment = classDoc.getComment();
                     if (comment != null) {
-                        CommentTarget target = (CommentTarget) comment.getSpecialComment(CommentTarget.class);
+                        CommentTarget target = comment.getSpecialComment(CommentTarget.class);
                         if (target != null) {
                             classDocuments.computeIfAbsent(target.getTargetName(), s -> new ArrayList<>()).add(classDoc);
+                            List<CommentAssign> assignable = comment.getSpecialComments(CommentAssign.class);
+                            typesAssignable.computeIfAbsent(target.getTargetName(), s -> new ArrayList<>()).addAll(assignable.stream().map(CommentAssign::getType).collect(Collectors.toList()));
                             continue;
                         }
                     }

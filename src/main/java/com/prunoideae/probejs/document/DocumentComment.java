@@ -32,16 +32,16 @@ public class DocumentComment implements IDecorative, IFormatter {
         return abstractComments.values().stream().flatMap(Collection::stream).toList();
     }
 
-    public List<AbstractComment> getSpecialComments(Class<? extends AbstractComment> clazz) {
-        return abstractComments.getOrDefault(clazz, new ArrayList<>());
+    public <T> List<T> getSpecialComments(Class<? extends T> clazz) {
+        return abstractComments.getOrDefault(clazz, new ArrayList<>()).stream().map(i -> (T) i).collect(Collectors.toList());
     }
 
-    public AbstractComment getSpecialComment(Class<? extends AbstractComment> clazz, int index) {
-        List<AbstractComment> a = abstractComments.get(clazz);
+    public <T> T getSpecialComment(Class<? extends T> clazz, int index) {
+        List<T> a = getSpecialComments(clazz);
         return a == null ? null : a.get(index);
     }
 
-    public AbstractComment getSpecialComment(Class<? extends AbstractComment> clazz) {
+    public <T> T getSpecialComment(Class<? extends T> clazz) {
         return getSpecialComment(clazz, 0);
     }
 
