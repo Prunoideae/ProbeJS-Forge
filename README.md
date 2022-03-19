@@ -15,6 +15,12 @@ Current progress of mod documents:
 - Minecraft (Completed)
 - Create (Completed)
 - Integrated Dynamics (Completed)
+- ArsNouveau (Completed)
+- ArtisanWorktables (Completed)
+- Botania (Completed)
+- Cucumber (Completed)
+- DankStorage (Completed)
+- ExtendedCrafting (Completed)
 - Others (Please PR)
 
 For the detailed information about documents, please refer to the wiki page.
