@@ -23,6 +23,7 @@ public class Manager {
     public static Map<String, List<DocumentClass>> classDocuments = new HashMap<>();
     public static Map<String, List<IType>> typesAssignable = new HashMap<>();
     public static Map<String, List<DocumentClass>> classAdditions = new HashMap<>();
+    public static List<String> rawTSDoc = new ArrayList<>();
     public static List<DocumentType> typeDocuments = new ArrayList<>();
 
 
@@ -36,7 +37,10 @@ public class Manager {
             if (f.isDirectory())
                 return;
             BufferedReader reader = Files.newBufferedReader(f.toPath());
-            reader.lines().forEach(document::step);
+            if (!f.getName().startsWith("!"))
+                reader.lines().forEach(document::step);
+            else
+                reader.lines().forEach(rawTSDoc::add);
         }
     }
 
@@ -52,14 +56,34 @@ public class Manager {
                     BufferedReader reader = new BufferedReader(new InputStreamReader(new BufferedInputStream(stream), StandardCharsets.UTF_8));
                     List<String> list = reader.lines().collect(Collectors.toList());
                     for (String subEntry : list) {
-                        ZipEntry docEntry = file.getEntry(subEntry);
-                        if (docEntry != null) {
-                            ProbeJS.LOGGER.info("Loading document inside jar - %s".formatted(subEntry));
-                            InputStream docStream = file.getInputStream(docEntry);
-                            BufferedReader docReader = new BufferedReader(new InputStreamReader(new BufferedInputStream(docStream), StandardCharsets.UTF_8));
-                            docReader.lines().forEach(document::step);
+                        if (subEntry.startsWith("!")) {
+                            subEntry = subEntry.substring(1);
+                            int i = subEntry.indexOf(" ");
+                            if (i != -1) {
+                                if (!Platform.isModLoaded(subEntry.substring(0, i))) {
+                                    continue;
+                                }
+                                subEntry = subEntry.substring(i + 1);
+                            }
+                            ZipEntry docEntry = file.getEntry(subEntry);
+                            if (docEntry != null) {
+                                ProbeJS.LOGGER.info("Loading document inside jar - %s".formatted(subEntry));
+                                InputStream docStream = file.getInputStream(docEntry);
+                                BufferedReader docReader = new BufferedReader(new InputStreamReader(new BufferedInputStream(docStream), StandardCharsets.UTF_8));
+                                docReader.lines().forEach(rawTSDoc::add);
+                            } else {
+                                ProbeJS.LOGGER.warn("Document from file is not found - %s".formatted(subEntry));
+                            }
                         } else {
-                            ProbeJS.LOGGER.warn("Document from file is not found - %s".formatted(subEntry));
+                            ZipEntry docEntry = file.getEntry(subEntry);
+                            if (docEntry != null) {
+                                ProbeJS.LOGGER.info("Loading document inside jar - %s".formatted(subEntry));
+                                InputStream docStream = file.getInputStream(docEntry);
+                                BufferedReader docReader = new BufferedReader(new InputStreamReader(new BufferedInputStream(docStream), StandardCharsets.UTF_8));
+                                docReader.lines().forEach(document::step);
+                            } else {
+                                ProbeJS.LOGGER.warn("Document from file is not found - %s".formatted(subEntry));
+                            }
                         }
                     }
                 }
@@ -79,6 +103,9 @@ public class Manager {
         classDocuments.clear();
         classAdditions.clear();
         typeDocuments.clear();
+        typesAssignable.clear();
+        rawTSDoc.clear();
+
 
         for (IDocument doc : documentState.getDocument().getDocuments()) {
             if (doc instanceof DocumentClass classDoc) {

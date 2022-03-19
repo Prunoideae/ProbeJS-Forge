@@ -1,6 +1,11 @@
 package com.prunoideae.probejs.document.type;
 
+import com.prunoideae.probejs.document.Manager;
 import com.prunoideae.probejs.formatter.NameResolver;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 public class TypeNamed implements IType {
     private final String typeName;
@@ -19,5 +24,13 @@ public class TypeNamed implements IType {
         if (resolved == null)
             return typeName;
         return resolved.getFullName();
+    }
+
+    @Override
+    public Set<String> getAssignableNames() {
+        Set<String> assignableNames = new HashSet<>();
+        assignableNames.add(getTypeName());
+        Manager.typesAssignable.getOrDefault(getRawTypeName(), new ArrayList<>()).stream().map(IType::getTypeName).forEach(assignableNames::add);
+        return assignableNames;
     }
 }

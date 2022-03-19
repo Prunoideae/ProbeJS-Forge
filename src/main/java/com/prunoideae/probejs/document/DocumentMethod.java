@@ -1,5 +1,6 @@
 package com.prunoideae.probejs.document;
 
+import com.google.common.collect.Sets;
 import com.prunoideae.probejs.document.parser.processor.IDocumentProvider;
 import com.prunoideae.probejs.document.type.IType;
 import com.prunoideae.probejs.document.type.Resolver;
@@ -16,12 +17,31 @@ public class DocumentMethod extends DocumentProperty implements IDocumentProvide
         return this;
     }
 
+    public String getMethodBody() {
+        StringBuilder sb = new StringBuilder();
+        if (isStatic)
+            sb.append("static ");
+        sb.append(name);
+        sb.append("(%s)");
+        sb.append(": %s;".formatted(returnType.getTypeName()));
+        return sb.toString();
+    }
+
+    private static Set<String> getParamSet(DocumentParam param) {
+        String paramBody = param.name + ": %s";
+        return param.type.getAssignableNames().stream().map(paramBody::formatted).collect(Collectors.toSet());
+    }
+
     @Override
     public List<String> format(Integer indent, Integer stepIndent) {
         List<String> formatted = new ArrayList<>();
         if (comment != null)
             formatted.addAll(comment.format(indent, stepIndent));
-        formatted.add(" ".repeat(indent) + "%s%s(%s): %s;".formatted(isStatic ? "static " : "", name, getParams().stream().map(p -> "%s: %s".formatted(p.name, p.type.getTypeName())).collect(Collectors.joining(", ")), returnType.getTypeName()));
+        String methodBody = getMethodBody();
+        List<Set<String>> paramSet = getParams().stream().map(DocumentMethod::getParamSet).collect(Collectors.toList());
+        for (List<String> paramsFormatted : Sets.cartesianProduct(paramSet)) {
+            formatted.add(" ".repeat(indent) + methodBody.formatted(String.join(", ", paramsFormatted)));
+        }
         return formatted;
     }
 

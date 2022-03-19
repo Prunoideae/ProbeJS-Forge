@@ -1,4 +1,22 @@
 /**
+* @target dev.latvian.mods.kubejs.item.ItemStackJS
+* @assign string
+* @assign object
+*/
+class ItemStackJS {
+}
+
+/**
+ * @target dev.latvian.mods.kubejs.item.ingredient.IngredientJS
+ * @assign string
+ * @assign object
+ * @assign dev.latvian.mods.kubejs.item.ItemStackJS
+ */
+class IngredientJS {
+
+}
+
+/**
 * @target dev.latvian.mods.kubejs.recipe.RecipeEventJS
 */
 class RecipeEventJS {

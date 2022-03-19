@@ -38,7 +38,7 @@ public class DocumentComment implements IDecorative, IFormatter {
 
     public <T> T getSpecialComment(Class<? extends T> clazz, int index) {
         List<T> a = getSpecialComments(clazz);
-        return a == null ? null : a.get(index);
+        return a.size() <= index ? null : a.get(index);
     }
 
     public <T> T getSpecialComment(Class<? extends T> clazz) {

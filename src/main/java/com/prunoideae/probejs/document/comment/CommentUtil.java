@@ -29,11 +29,7 @@ public class CommentUtil {
     public static Map<String, IType> getTypeModifiers(DocumentComment comment) {
         Map<String, IType> modifiers = new HashMap<>();
         if (comment != null) {
-            comment.getSpecialComments(CommentModify.class).forEach(m -> {
-                if (m instanceof CommentModify modify) {
-                    modifiers.put(modify.getName(), modify.getType());
-                }
-            });
+            comment.getSpecialComments(CommentModify.class).forEach(modify -> modifiers.put(modify.getName(), modify.getType()));
         }
         return modifiers;
     }
@@ -41,11 +37,7 @@ public class CommentUtil {
     public static Map<String, String> getRenames(DocumentComment comment) {
         Map<String, String> renames = new HashMap<>();
         if (comment != null) {
-            comment.getSpecialComments(CommentRename.class).forEach(m -> {
-                if (m instanceof CommentRename rename) {
-                    renames.put(rename.getName(), rename.getTo());
-                }
-            });
+            comment.getSpecialComments(CommentRename.class).forEach(rename -> renames.put(rename.getName(), rename.getTo()));
         }
         return renames;
     }

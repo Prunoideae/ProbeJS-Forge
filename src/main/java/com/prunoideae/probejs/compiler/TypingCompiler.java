@@ -12,9 +12,11 @@ import com.prunoideae.probejs.formatter.ClassResolver;
 import com.prunoideae.probejs.formatter.NameResolver;
 import com.prunoideae.probejs.formatter.formatter.FormatterClass;
 import com.prunoideae.probejs.formatter.formatter.FormatterNamespace;
+import com.prunoideae.probejs.formatter.formatter.FormatterRawTS;
 import com.prunoideae.probejs.formatter.formatter.IFormatter;
 import com.prunoideae.probejs.info.ClassInfo;
 import com.prunoideae.probejs.info.Walker;
+import com.prunoideae.probejs.info.type.TypeInfoClass;
 import com.prunoideae.probejs.plugin.WrappedEventHandler;
 import dev.latvian.mods.kubejs.KubeJSPaths;
 import dev.latvian.mods.kubejs.event.EventJS;
@@ -119,7 +121,7 @@ public class TypingCompiler {
 
         writer.write(String.join("\n", new FormatterNamespace("Document", Manager.classAdditions.values().stream().map(l -> l.get(0)).collect(Collectors.toList())).format(0, 4)) + "\n");
         writer.write(String.join("\n", new FormatterNamespace("Type", Manager.typeDocuments).format(0, 4)) + "\n");
-
+        writer.write(String.join("\n", new FormatterRawTS(Manager.rawTSDoc).format(0, 4)) + "\n");
         writer.flush();
     }
 
@@ -130,7 +132,7 @@ public class TypingCompiler {
         for (Map.Entry<String, Class<?>> entry : cachedEvents.entrySet()) {
             String name = entry.getKey();
             Class<?> event = entry.getValue();
-            writer.write("declare function onEvent(name: \"%s\", handler: (event: %s) => void);\n".formatted(name, NameResolver.getResolvedName(event.getName()).getFullName()));
+            writer.write("declare function onEvent(name: \"%s\", handler: (event: %s) => void);\n".formatted(name, FormatterClass.formatTypeParameterized(new TypeInfoClass(event))));
         }
         writer.flush();
     }
