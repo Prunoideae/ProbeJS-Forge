@@ -2,6 +2,7 @@ package com.prunoideae.probejs.formatter;
 
 import com.prunoideae.probejs.formatter.formatter.FormatterType;
 import com.prunoideae.probejs.info.type.TypeInfoParameterized;
+import dev.latvian.mods.kubejs.util.BuilderBase;
 import net.minecraft.nbt.CompoundTag;
 
 import java.util.function.*;
@@ -23,6 +24,9 @@ public class SpecialTypes {
             return "(arg0: any) => boolean";
         });
         NameResolver.putTypeFormatter(Supplier.class, t -> {
+            if (BuilderBase.class.isAssignableFrom(t.getResolvedClass())) {
+                return new FormatterType(t, false).format(0, 0);
+            }
             if (t instanceof TypeInfoParameterized parType && parType.getParamTypes().size() == 1) {
                 String inner = new FormatterType(parType.getParamTypes().get(0)).format(0, 0);
                 return "() => %s".formatted(inner);

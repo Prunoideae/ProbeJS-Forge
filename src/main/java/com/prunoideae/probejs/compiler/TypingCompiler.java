@@ -133,6 +133,7 @@ public class TypingCompiler {
         cachedForgeEvents.putAll(WrappedForgeEventHandler.capturedEvents);
         BufferedWriter writer = Files.newBufferedWriter(ProbePaths.GENERATED.resolve("events.d.ts"));
         writer.write("/// <reference path=\"./globals.d.ts\" />\n");
+        writer.write("/// <reference path=\"./registries.d.ts\" />\n");
         for (Map.Entry<String, Class<?>> entry : cachedEvents.entrySet()) {
             String name = entry.getKey();
             Class<?> event = entry.getValue();
@@ -143,6 +144,7 @@ public class TypingCompiler {
             Class<?> event = entry.getValue();
             writer.write("declare function onForgeEvent(name: \"%s\", handler: (event: %s) => void);\n".formatted(name, FormatterClass.formatTypeParameterized(new TypeInfoClass(event))));
         }
+        RegistryCompiler.compileEventRegistries(writer);
         writer.flush();
     }
 
@@ -193,10 +195,12 @@ public class TypingCompiler {
         Map<String, Class<?>> cachedForgeEvents = readCachedEvents("cachedForgeEvents.json");
         Set<Class<?>> cachedClasses = new HashSet<>(cachedEvents.values());
         cachedClasses.addAll(cachedForgeEvents.values());
+        cachedClasses.addAll(RegistryCompiler.getRegistryClasses());
         Set<Class<?>> globalClasses = fetchClasses(typeMap, bindingEvent, cachedClasses);
         globalClasses.removeIf(c -> ClassResolver.skipped.contains(c));
 
         compileGlobal(bindingEvent, globalClasses);
+        RegistryCompiler.compileRegistries();
         compileEvents(cachedEvents, cachedForgeEvents);
         compileConstants(bindingEvent);
         compileJava(globalClasses);

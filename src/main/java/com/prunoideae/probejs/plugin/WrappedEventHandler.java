@@ -1,5 +1,6 @@
 package com.prunoideae.probejs.plugin;
 
+import dev.latvian.mods.kubejs.RegistryObjectBuilderTypes;
 import dev.latvian.mods.kubejs.event.EventJS;
 import dev.latvian.mods.kubejs.event.IEventHandler;
 
@@ -11,7 +12,9 @@ public record WrappedEventHandler(String event, IEventHandler inner) implements 
 
     @Override
     public void onEvent(EventJS eventJS) {
-        WrappedEventHandler.capturedEvents.put(this.event, eventJS.getClass());
+        //Special handlers for registry events
+        if (!(eventJS instanceof RegistryObjectBuilderTypes.RegistryEventJS))
+            WrappedEventHandler.capturedEvents.put(this.event, eventJS.getClass());
         this.inner.onEvent(eventJS);
     }
 }
