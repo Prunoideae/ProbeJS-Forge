@@ -1,9 +1,12 @@
 package com.prunoideae.probejs.info;
 
+import com.prunoideae.probejs.formatter.ClassResolver;
 import com.prunoideae.probejs.info.type.ITypeInfo;
 import com.prunoideae.probejs.info.type.InfoTypeResolver;
+import dev.latvian.mods.rhino.mod.util.RemappingHelper;
 import dev.latvian.mods.rhino.util.HideFromJS;
 import dev.latvian.mods.rhino.util.RemapForJS;
+import dev.latvian.mods.rhino.util.Remapper;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -13,6 +16,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class MethodInfo {
+    public static final Remapper RUNTIME = RemappingHelper.createModRemapper();
     private final String name;
     private final boolean shouldHide;
     private final int modifiers;
@@ -20,8 +24,13 @@ public class MethodInfo {
     private List<ParamInfo> params;
     private List<ITypeInfo> typeVariables;
 
-    public MethodInfo(Method method) {
-        this.name = method.getAnnotation(RemapForJS.class) != null ? method.getAnnotation(RemapForJS.class).value() : method.getName();
+    private static String getRemappedOrDefault(Method method, Class<?> from) {
+        String s = RUNTIME.getMappedMethod(from, method);
+        return s.isEmpty() ? method.getName() : s;
+    }
+
+    public MethodInfo(Method method, Class<?> from) {
+        this.name = getRemappedOrDefault(method, from);
         this.shouldHide = method.getAnnotation(HideFromJS.class) != null;
         this.modifiers = method.getModifiers();
         this.returnType = InfoTypeResolver.resolveType(method.getGenericReturnType());

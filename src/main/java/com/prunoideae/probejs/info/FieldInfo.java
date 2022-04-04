@@ -8,6 +8,7 @@ import dev.latvian.mods.rhino.util.RemapForJS;
 
 import javax.swing.*;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -19,8 +20,13 @@ public class FieldInfo {
     private final Object value;
     private ITypeInfo info;
 
+    private static String getRemappedOrDefault(Field field) {
+        String s = MethodInfo.RUNTIME.getMappedField(field.getDeclaringClass(), field);
+        return s.isEmpty() ? field.getName() : s;
+    }
+
     public FieldInfo(Field field) {
-        name = field.getAnnotation(RemapForJS.class) != null ? field.getAnnotation(RemapForJS.class).value() : field.getName();
+        name = getRemappedOrDefault(field);
         modifiers = field.getModifiers();
         shouldHide = field.getAnnotation(HideFromJS.class) != null;
         info = InfoTypeResolver.resolveType(field.getGenericType());

@@ -5,6 +5,7 @@ import com.prunoideae.probejs.info.type.ITypeInfo;
 import com.prunoideae.probejs.info.type.InfoTypeResolver;
 import com.prunoideae.probejs.info.type.TypeInfoParameterized;
 import com.prunoideae.probejs.info.type.TypeInfoVariable;
+import dev.latvian.mods.rhino.mod.util.RemappingHelper;
 import it.unimi.dsi.fastutil.Function;
 
 import java.lang.reflect.Modifier;
@@ -56,7 +57,7 @@ public class ClassInfo {
         interfaces = Arrays.stream(clazzRaw.getInterfaces()).map(ClassInfo::getOrCache).collect(Collectors.toList());
         parameters = Arrays.stream(clazzRaw.getTypeParameters()).map(InfoTypeResolver::resolveType).collect(Collectors.toList());
         methodInfo = Arrays.stream(clazzRaw.getMethods())
-                .map(MethodInfo::new)
+                .map(m -> new MethodInfo(m, clazz))
                 .filter(m -> ClassResolver.acceptMethod(m.getName()))
                 .filter(m -> !m.shouldHide())
                 .collect(Collectors.toList());

@@ -27,7 +27,7 @@ public class SpecialTypes {
                 String inner = new FormatterType(parType.getParamTypes().get(0)).format(0, 0);
                 return "() => %s".formatted(inner);
             }
-            return "() => any)";
+            return "() => any";
         });
         NameResolver.putTypeFormatter(Function.class, t -> {
             if (t instanceof TypeInfoParameterized parType && parType.getParamTypes().size() == 2) {
