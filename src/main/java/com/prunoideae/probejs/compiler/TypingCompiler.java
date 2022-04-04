@@ -18,12 +18,14 @@ import com.prunoideae.probejs.info.ClassInfo;
 import com.prunoideae.probejs.info.Walker;
 import com.prunoideae.probejs.info.type.TypeInfoClass;
 import com.prunoideae.probejs.plugin.WrappedEventHandler;
+import com.prunoideae.probejs.plugin.WrappedForgeEventHandler;
 import dev.latvian.mods.kubejs.KubeJSPaths;
 import dev.latvian.mods.kubejs.event.EventJS;
 import dev.latvian.mods.kubejs.recipe.RecipeTypeJS;
 import dev.latvian.mods.kubejs.recipe.RegisterRecipeHandlersEvent;
 import dev.latvian.mods.kubejs.server.ServerScriptManager;
 import dev.latvian.mods.kubejs.util.KubeJSPlugins;
+import dev.latvian.mods.rhino.ScriptRuntime;
 import net.minecraft.resources.ResourceLocation;
 
 import java.io.BufferedWriter;
@@ -35,9 +37,9 @@ import java.util.stream.Collectors;
 
 public class TypingCompiler {
 
-    public static Map<String, Class<?>> readCachedEvents() throws IOException {
+    public static Map<String, Class<?>> readCachedEvents(String fileName) throws IOException {
         Map<String, Class<?>> cachedEvents = new HashMap<>();
-        Path cachedEventPath = KubeJSPaths.EXPORTED.resolve("cachedEvents.json");
+        Path cachedEventPath = KubeJSPaths.EXPORTED.resolve(fileName);
         if (Files.exists(cachedEventPath)) {
             try {
                 Map<?, ?> cachedMap = new Gson().fromJson(Files.newBufferedReader(cachedEventPath), Map.class);
@@ -59,8 +61,8 @@ public class TypingCompiler {
         return cachedEvents;
     }
 
-    public static void writeCachedEvents(Map<String, Class<?>> events) throws IOException {
-        BufferedWriter cacheWriter = Files.newBufferedWriter(KubeJSPaths.EXPORTED.resolve("cachedEvents.json"));
+    public static void writeCachedEvents(String fileName, Map<String, Class<?>> events) throws IOException {
+        BufferedWriter cacheWriter = Files.newBufferedWriter(KubeJSPaths.EXPORTED.resolve(fileName));
         JsonObject outJson = new JsonObject();
         for (Map.Entry<String, Class<?>> entry : events.entrySet()) {
             String eventName = entry.getKey();
@@ -78,6 +80,7 @@ public class TypingCompiler {
         touchableClasses.addAll(typeMap.values().stream().map(recipeTypeJS -> recipeTypeJS.factory.get().getClass()).collect(Collectors.toList()));
         touchableClasses.addAll(bindingEvent.getConstantDumpMap().values().stream().map(Object::getClass).collect(Collectors.toList()));
         touchableClasses.addAll(WrappedEventHandler.capturedEvents.values());
+        touchableClasses.addAll(WrappedForgeEventHandler.capturedEvents.values());
 
         Walker walker = new Walker(touchableClasses);
         return walker.walk();
@@ -125,14 +128,20 @@ public class TypingCompiler {
         writer.flush();
     }
 
-    public static void compileEvents(Map<String, Class<?>> cachedEvents) throws IOException {
+    public static void compileEvents(Map<String, Class<?>> cachedEvents, Map<String, Class<?>> cachedForgeEvents) throws IOException {
         cachedEvents.putAll(WrappedEventHandler.capturedEvents);
+        cachedForgeEvents.putAll(WrappedForgeEventHandler.capturedEvents);
         BufferedWriter writer = Files.newBufferedWriter(ProbePaths.GENERATED.resolve("events.d.ts"));
         writer.write("/// <reference path=\"./globals.d.ts\" />\n");
         for (Map.Entry<String, Class<?>> entry : cachedEvents.entrySet()) {
             String name = entry.getKey();
             Class<?> event = entry.getValue();
             writer.write("declare function onEvent(name: \"%s\", handler: (event: %s) => void);\n".formatted(name, FormatterClass.formatTypeParameterized(new TypeInfoClass(event))));
+        }
+        for (Map.Entry<String, Class<?>> entry : cachedForgeEvents.entrySet()) {
+            String name = entry.getKey();
+            Class<?> event = entry.getValue();
+            writer.write("declare function onForgeEvent(name: \"%s\", handler: (event: %s) => void);\n".formatted(name, FormatterClass.formatTypeParameterized(new TypeInfoClass(event))));
         }
         writer.flush();
     }
@@ -180,16 +189,20 @@ public class TypingCompiler {
         KubeJSPlugins.forEachPlugin(plugin -> plugin.addRecipes(recipeEvent));
         KubeJSPlugins.forEachPlugin(plugin -> plugin.addBindings(bindingEvent));
 
-        Map<String, Class<?>> cachedEvents = readCachedEvents();
-        Set<Class<?>> globalClasses = fetchClasses(typeMap, bindingEvent, new HashSet<>(cachedEvents.values()));
+        Map<String, Class<?>> cachedEvents = readCachedEvents("cachedEvents.json");
+        Map<String, Class<?>> cachedForgeEvents = readCachedEvents("cachedForgeEvents.json");
+        Set<Class<?>> cachedClasses = new HashSet<>(cachedEvents.values());
+        cachedClasses.addAll(cachedForgeEvents.values());
+        Set<Class<?>> globalClasses = fetchClasses(typeMap, bindingEvent, cachedClasses);
         globalClasses.removeIf(c -> ClassResolver.skipped.contains(c));
 
         compileGlobal(bindingEvent, globalClasses);
-        compileEvents(cachedEvents);
+        compileEvents(cachedEvents, cachedForgeEvents);
         compileConstants(bindingEvent);
         compileJava(globalClasses);
         compileJSConfig();
-        writeCachedEvents(cachedEvents);
+        writeCachedEvents("cachedEvents.json", cachedEvents);
+        writeCachedEvents("cachedForgedEvents.json", cachedForgeEvents);
     }
 
 }

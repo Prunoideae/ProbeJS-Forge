@@ -11,7 +11,6 @@ import com.prunoideae.probejs.document.comment.CommentHandler;
 import com.prunoideae.probejs.document.parser.processor.DocumentProviderHandler;
 import com.prunoideae.probejs.formatter.ClassResolver;
 import com.prunoideae.probejs.formatter.NameResolver;
-import com.prunoideae.probejs.info.ClassInfo;
 import dev.latvian.mods.kubejs.KubeJSPaths;
 import dev.latvian.mods.kubejs.server.ServerSettings;
 import net.minecraft.commands.CommandSourceStack;
