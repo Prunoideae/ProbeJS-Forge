@@ -3,6 +3,7 @@ package com.prunoideae.probejs.plugin;
 import com.prunoideae.probejs.ProbeJS;
 import dev.latvian.mods.kubejs.KubeJSPlugin;
 import dev.latvian.mods.kubejs.script.BindingsEvent;
+import dev.latvian.mods.rhino.NativeJavaMethod;
 import dev.latvian.mods.rhino.NativeJavaObject;
 import dev.latvian.mods.rhino.Scriptable;
 

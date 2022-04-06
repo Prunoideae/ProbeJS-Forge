@@ -44,16 +44,6 @@ public class RegistryCompiler {
         writer.flush();
     }
 
-    public static void getBuilderTypes() {
-        RegistryObjectBuilderTypes.MAP.forEach((k, v) -> {
-            System.out.println(k.registry());
-            v.types.forEach((k1, v1) -> {
-                System.out.println("    " + k1);
-                System.out.println("    " + v1.builderClass());
-            });
-        });
-    }
-
     private static class FormatterRegistry implements IFormatter {
         RegistryObjectBuilderTypes<?> types;
         String name;

@@ -25,7 +25,6 @@ import dev.latvian.mods.kubejs.recipe.RecipeTypeJS;
 import dev.latvian.mods.kubejs.recipe.RegisterRecipeHandlersEvent;
 import dev.latvian.mods.kubejs.server.ServerScriptManager;
 import dev.latvian.mods.kubejs.util.KubeJSPlugins;
-import dev.latvian.mods.rhino.ScriptRuntime;
 import net.minecraft.resources.ResourceLocation;
 
 import java.io.BufferedWriter;
@@ -155,7 +154,7 @@ public class TypingCompiler {
             String name = entry.getKey();
             Object value = entry.getValue();
             String resolved = NameResolver.formatValue(value);
-            writer.write("declare const %s: %s;\n".formatted(name, resolved == null ? NameResolver.getResolvedName(value.getClass().getName()).getFullName() : resolved));
+            writer.write("declare const %s: %s;\n".formatted(name, resolved == null ? FormatterClass.formatTypeParameterized(new TypeInfoClass(value.getClass())) : resolved));
         }
         writer.flush();
     }
@@ -165,7 +164,7 @@ public class TypingCompiler {
         writer.write("/// <reference path=\"./globals.d.ts\" />\n");
         for (Class<?> c : globalClasses) {
             if (ServerScriptManager.instance.scriptManager.isClassAllowed(c.getName())) {
-                writer.write("declare function java(name: \"%s\"): typeof %s;\n".formatted(c.getName(), NameResolver.getResolvedName(c.getName()).getFullName()));
+                writer.write("declare function java(name: \"%s\"): typeof %s;\n".formatted(c.getName(), FormatterClass.formatTypeParameterized(new TypeInfoClass(c))));
             }
         }
         writer.flush();

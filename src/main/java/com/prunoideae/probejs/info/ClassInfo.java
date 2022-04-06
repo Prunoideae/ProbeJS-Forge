@@ -5,18 +5,20 @@ import com.prunoideae.probejs.info.type.ITypeInfo;
 import com.prunoideae.probejs.info.type.InfoTypeResolver;
 import com.prunoideae.probejs.info.type.TypeInfoParameterized;
 import com.prunoideae.probejs.info.type.TypeInfoVariable;
-import dev.latvian.mods.rhino.mod.util.RemappingHelper;
-import it.unimi.dsi.fastutil.Function;
 
 import java.lang.reflect.Modifier;
-import java.nio.file.Path;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class ClassInfo {
     public static final Map<Class<?>, ClassInfo> CLASS_CACHE = new HashMap<>();
 
     public static ClassInfo getOrCache(Class<?> clazz) {
+        //No computeIfAbsent because new ClassInfo will call getOrCache for superclass lookup
+        //This will cause a CME because multiple updates occurred in one computeIfAbsent
         if (CLASS_CACHE.containsKey(clazz))
             return CLASS_CACHE.get(clazz);
         ClassInfo info = new ClassInfo(clazz);

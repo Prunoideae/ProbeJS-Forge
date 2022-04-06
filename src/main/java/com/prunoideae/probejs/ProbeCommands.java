@@ -4,7 +4,6 @@ import com.google.common.collect.Lists;
 import com.google.gson.JsonObject;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
-import com.prunoideae.probejs.compiler.RegistryCompiler;
 import com.prunoideae.probejs.compiler.SnippetCompiler;
 import com.prunoideae.probejs.compiler.TypingCompiler;
 import com.prunoideae.probejs.document.Manager;
@@ -101,12 +100,12 @@ public class ProbeCommands {
                                     return Command.SINGLE_SUCCESS;
                                 }))
                         )
-                        .then(Commands.literal("test")
-                                .requires(source -> source.getServer().isSingleplayer() || source.hasPermission(2))
-                                .executes(context -> {
-                                    RegistryCompiler.getBuilderTypes();
-                                    return Command.SINGLE_SUCCESS;
-                                }))
+                //.then(Commands.literal("test")
+                //        .requires(source -> source.getServer().isSingleplayer() || source.hasPermission(2))
+                //       .executes(context -> {
+                //          RegistryCompiler.getBuilderTypes();
+                //         return Command.SINGLE_SUCCESS;
+                //    }))
         );
     }
 
