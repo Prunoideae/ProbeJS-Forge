@@ -80,13 +80,7 @@ public class NameResolver {
     }
 
     public static boolean isTypeSpecial(Class<?> clazz) {
-        if (specialTypeFormatters.containsKey(clazz))
-            return true;
-        for (Class<?> key : specialTypeFormatters.keySet()) {
-            if (key.isAssignableFrom(clazz))
-                return true;
-        }
-        return false;
+        return specialTypeFormatters.containsKey(clazz);
     }
 
     public static void putValueFormatter(Function<Object, String> transformer, Class<?>... classes) {

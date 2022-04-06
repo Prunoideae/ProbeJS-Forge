@@ -25,13 +25,6 @@ public class FormatterType {
             Class<?> rawClass = typeInfo.getResolvedClass();
             if (NameResolver.specialTypeFormatters.containsKey(rawClass)) {
                 return NameResolver.specialTypeFormatters.get(rawClass).apply(this.typeInfo);
-            } else {
-                for (Map.Entry<Class<?>, Function<ITypeInfo, String>> entry : NameResolver.specialTypeFormatters.entrySet()) {
-                    Class<?> clazz = entry.getKey();
-                    Function<ITypeInfo, String> formatter = entry.getValue();
-                    if (clazz.isAssignableFrom(rawClass))
-                        return formatter.apply(typeInfo);
-                }
             }
         }
 

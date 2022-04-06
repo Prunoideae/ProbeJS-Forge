@@ -10,6 +10,7 @@ import com.prunoideae.probejs.document.DocumentClass;
 import com.prunoideae.probejs.document.Manager;
 import com.prunoideae.probejs.formatter.ClassResolver;
 import com.prunoideae.probejs.formatter.NameResolver;
+import com.prunoideae.probejs.formatter.SpecialTypes;
 import com.prunoideae.probejs.formatter.formatter.FormatterClass;
 import com.prunoideae.probejs.formatter.formatter.FormatterNamespace;
 import com.prunoideae.probejs.formatter.formatter.FormatterRawTS;
@@ -197,7 +198,7 @@ public class TypingCompiler {
         cachedClasses.addAll(RegistryCompiler.getRegistryClasses());
         Set<Class<?>> globalClasses = fetchClasses(typeMap, bindingEvent, cachedClasses);
         globalClasses.removeIf(c -> ClassResolver.skipped.contains(c));
-
+        SpecialTypes.processFunctionalInterfaces(globalClasses);
         compileGlobal(bindingEvent, globalClasses);
         RegistryCompiler.compileRegistries();
         compileEvents(cachedEvents, cachedForgeEvents);
