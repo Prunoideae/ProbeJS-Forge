@@ -123,7 +123,7 @@ public class NameResolver {
     }
 
     public static void init() {
-        putResolvedName(Object.class, "any");
+        putResolvedName(Object.class, "object");
         putResolvedName(String.class, "string");
         putResolvedName(Character.class, "string");
         putResolvedName(Character.TYPE, "string");

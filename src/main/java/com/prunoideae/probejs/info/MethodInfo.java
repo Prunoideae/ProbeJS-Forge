@@ -18,6 +18,7 @@ public class MethodInfo {
     private final String name;
     private final boolean shouldHide;
     private final int modifiers;
+    private final Class<?> from;
     private ITypeInfo returnType;
     private List<ParamInfo> params;
     private List<ITypeInfo> typeVariables;
@@ -31,6 +32,7 @@ public class MethodInfo {
     public MethodInfo(Method method, Class<?> from) {
         this.name = getRemappedOrDefault(method, from);
         this.shouldHide = method.getAnnotation(HideFromJS.class) != null;
+        this.from = from;
         this.modifiers = method.getModifiers();
         this.returnType = InfoTypeResolver.resolveType(method.getGenericReturnType());
         this.params = Arrays.stream(method.getParameters()).map(ParamInfo::new).collect(Collectors.toList());
@@ -49,6 +51,10 @@ public class MethodInfo {
         return Modifier.isStatic(modifiers);
     }
 
+    public boolean isAbstract() {
+        return Modifier.isAbstract(modifiers);
+    }
+
     public ITypeInfo getReturnType() {
         return returnType;
     }
@@ -59,6 +65,10 @@ public class MethodInfo {
 
     public List<ITypeInfo> getTypeVariables() {
         return typeVariables;
+    }
+
+    public ClassInfo getFrom() {
+        return ClassInfo.getOrCache(from);
     }
 
     public void setParams(List<ParamInfo> params) {
