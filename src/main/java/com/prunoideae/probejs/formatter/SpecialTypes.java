@@ -9,9 +9,6 @@ import com.prunoideae.probejs.info.type.TypeInfoParameterized;
 import com.prunoideae.probejs.info.type.TypeInfoVariable;
 import dev.latvian.mods.kubejs.item.ingredient.IngredientJS;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.TypeVariable;
 import java.util.*;
 
 public class SpecialTypes {

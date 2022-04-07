@@ -66,6 +66,9 @@ public class RegistryCompiler {
             for (RegistryObjectBuilderTypes.BuilderType<?> builder : types.types.values()) {
                 formatted.add(" ".repeat(stepped) + "create(id: string, type: %s): %s;".formatted(stringG.toJson(builder.type()), FormatterClass.formatTypeParameterized(new TypeInfoClass(builder.builderClass()))));
             }
+            if (types.getDefaultType() != null) {
+                formatted.add(" ".repeat(stepped) + "create(id: string): %s;".formatted(FormatterClass.formatTypeParameterized(new TypeInfoClass(types.getDefaultType().builderClass()))));
+            }
             formatted.add(" ".repeat(indent) + "}");
             return formatted;
         }
